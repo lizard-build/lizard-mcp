@@ -14,6 +14,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "secrets.list",
     {
+      title: "List secrets",
       description:
         "Use this when the user wants to see environment variables/secrets configured for a Lizard service or project. Values are masked by default; pass reveal:true to see actual values.",
       inputSchema: {
@@ -21,7 +22,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
         service: z.string().min(1).optional().describe("Omit for project-wide (global) secrets"),
         reveal: z.boolean().optional().default(false),
       },
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, reveal }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -37,6 +38,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "secrets.set",
     {
+      title: "Set secrets",
       description:
         "Use this when the user wants to set one or more environment variables/secrets on a Lizard service or project. Overwrites existing values with the same key.",
       inputSchema: {
@@ -44,6 +46,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
         service: z.string().min(1).optional().describe("Omit to set project-wide (global) secrets"),
         values: z.record(z.string(), z.string()).describe("Key-value pairs to set"),
       },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, values }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -58,6 +61,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "secrets.delete",
     {
+      title: "Delete secrets",
       description:
         "Use this when the user wants to remove one or more environment variables/secrets from a Lizard service or project. This is destructive and cannot be undone — requires explicit confirmation.",
       inputSchema: {
@@ -66,7 +70,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
         keys: z.array(z.string()),
         confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
-      annotations: { destructiveHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service, keys }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -93,10 +97,11 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "secrets.refs",
     {
+      title: "List variable references",
       description:
         "Use this when the user wants to see the available reference-variable templates (like postgres connection strings) they can inject into another service's secrets.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1).optional() },
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);

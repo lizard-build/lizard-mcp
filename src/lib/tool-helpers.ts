@@ -1,8 +1,17 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
+/**
+ * structuredContent is only included for plain object/array results — the
+ * MCP spec requires it to be a JSON object, so string/number/null results
+ * (e.g. a bare status message) skip it and rely on the text content block.
+ */
 export function ok(data: unknown): CallToolResult {
   const text = typeof data === "string" ? data : JSON.stringify(data, null, 2);
-  return { content: [{ type: "text", text }] };
+  const isPlainObject = typeof data === "object" && data !== null;
+  return {
+    content: [{ type: "text", text }],
+    ...(isPlainObject ? { structuredContent: Array.isArray(data) ? { items: data } : (data as Record<string, unknown>) } : {}),
+  };
 }
 
 export function errResult(message: string): CallToolResult {

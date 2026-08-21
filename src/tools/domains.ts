@@ -24,6 +24,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "domain.attach",
     {
+      title: "Attach domain",
       description:
         "Use this when the user wants to attach a custom domain to a Lizard service, or generate a default *.onlizard.com subdomain if they don't have a custom one yet.",
       inputSchema: {
@@ -33,6 +34,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
         port: z.number().int().optional(),
         force: z.boolean().optional().describe("Move the domain here if it's attached to another of your services"),
       },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service, hostname, port, force }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -44,8 +46,10 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "domain.verify",
     {
+      title: "Verify domain DNS",
       description: "Use this when the user wants to verify DNS configuration for a custom domain attached to a Lizard service.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1), hostname: z.string() },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, hostname }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -57,6 +61,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "domain.delete",
     {
+      title: "Delete domain",
       description:
         "Use this when the user wants to remove a custom domain from a Lizard service. This is destructive and requires explicit confirmation.",
       inputSchema: {
@@ -65,7 +70,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
         hostname: z.string(),
         confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
-      annotations: { destructiveHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service, hostname }) => {
       const proj = await resolveProject(ctx.api, project);

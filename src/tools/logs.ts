@@ -10,6 +10,7 @@ export function registerLogsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "logs.tail",
     {
+      title: "Tail logs",
       description:
         "Use this when the user wants to see recent log output from a Lizard service or a specific build. Returns a bounded snapshot, not a live stream.",
       inputSchema: {
@@ -20,7 +21,7 @@ export function registerLogsTools(server: McpServer, ctx: ToolContext) {
         build: z.boolean().optional().describe("Fetch build logs instead of runtime logs"),
         buildId: z.string().optional().describe("Specific build ID; defaults to the most recent build"),
       },
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, limit, level, build, buildId }) => {
       const proj = await resolveProject(ctx.api, project);

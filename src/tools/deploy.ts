@@ -8,9 +8,11 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "deploy.redeploy",
     {
+      title: "Redeploy service",
       description:
         "Use this when the user wants to trigger a new deployment of an existing Lizard service (rebuild and redeploy current source). Returns immediately once the build is triggered — use deploy.events to check progress.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -23,9 +25,11 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "deploy.restart",
     {
+      title: "Restart service",
       description:
         "Use this when the user wants to restart a running Lizard service without rebuilding it. Returns immediately.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -38,10 +42,11 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "deploy.events",
     {
+      title: "Get deploy history",
       description:
         "Use this when the user wants to see recent deploy/build history and current replica status for a Lizard service.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);

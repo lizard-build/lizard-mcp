@@ -17,14 +17,16 @@ export function registerSshTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "ssh.exec",
     {
+      title: "Run shell command",
       description:
-        "Use this when the user wants to run a one-off shell command inside a running Lizard service's container and see its output. Waits for the command to finish. This executes arbitrary code in the user's own infrastructure on their behalf.",
+        "Use this when the user wants to run a one-off shell command inside a running Lizard service's container and see its output. Waits for the command to finish. This executes arbitrary code in the user's own infrastructure on their behalf — requires explicit confirmation.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1),
         cmd: z.string().describe("Shell command to execute (passed to /bin/sh on the VM)"),
+        confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
-      annotations: { destructiveHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     handle(async ({ project, service, cmd }) => {
       const proj = await resolveProject(ctx.api, project);

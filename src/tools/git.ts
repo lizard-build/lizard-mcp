@@ -19,9 +19,11 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "git.checkout",
     {
+      title: "Switch deploy branch",
       description:
         "Use this when the user wants to switch which branch a Lizard service deploys from, and redeploy it on that branch. Returns immediately once the redeploy is triggered.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1), branch: z.string() },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service, branch }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -44,9 +46,10 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "git.status",
     {
+      title: "Get GitHub connection status",
       description: "Use this when the user wants to see GitHub connection status and the repo/branch each service in a Lizard project is tracking.",
       inputSchema: { project: z.string().min(1) },
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -61,10 +64,11 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "git.connect",
     {
+      title: "Get GitHub connect URL",
       description:
         "Use this when the user wants to connect their GitHub account to Lizard. Returns an install URL the user must open in a browser themselves — this cannot complete automatically.",
       inputSchema: {},
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async () => {
       const status = await ctx.api.get<GitHubStatus>("/api/github/status");

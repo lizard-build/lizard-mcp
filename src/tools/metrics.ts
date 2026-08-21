@@ -9,13 +9,14 @@ export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "metrics.get",
     {
+      title: "Get metrics",
       description: "Use this when the user wants CPU, memory, or network metrics for a Lizard app or addon over a time range.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1).optional().describe("Omit for project-level live metrics"),
         range: z.enum(["1h", "6h", "24h", "7d", "14d", "30d"]).optional().default("24h"),
       },
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, range }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -38,9 +39,10 @@ export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "billing.summary",
     {
+      title: "Get billing summary",
       description: "Use this when the user wants a cost/billing summary for a Lizard workspace, including current usage and live spend.",
       inputSchema: { workspaceId: z.string() },
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ workspaceId }) => {
       const [summary, live] = await Promise.all([

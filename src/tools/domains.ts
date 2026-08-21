@@ -22,11 +22,11 @@ export function buildDomainDeletePath(appId: string, hostname: string): string {
 
 export function registerDomainTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "domain.attach",
+    "domain_attach",
     {
       title: "Attach domain",
       description:
-        "Use this when the user wants to attach a custom domain to a Lizard service, or generate a default *.onlizard.com subdomain if they don't have a custom one yet.",
+        "Use this when the user wants to attach a custom domain to a Lizard service, or generate a default *.onlizard.com subdomain if they don't have a custom one yet. Calling this again without hostname generates another subdomain rather than returning the existing one.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1),
@@ -44,7 +44,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "domain.verify",
+    "domain_verify",
     {
       title: "Verify domain DNS",
       description: "Use this when the user wants to verify DNS configuration for a custom domain attached to a Lizard service.",
@@ -59,7 +59,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "domain.delete",
+    "domain_delete",
     {
       title: "Delete domain",
       description:

@@ -74,7 +74,7 @@ export const serviceScaleShape = {
 
 export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "service.list",
+    "service_list",
     {
       title: "List services",
       description: "Use this when the user wants to see all apps and addons in a Lizard project.",
@@ -88,7 +88,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "service.show",
+    "service_show",
     {
       title: "Show service details",
       description:
@@ -107,11 +107,11 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "service.create",
+    "service_create",
     {
       title: "Create service",
       description:
-        "Use this when the user wants to create a new empty Lizard service, or deploy a GitHub repository as a new service. Omit repoUrl for an empty service you configure later; provide repoUrl to deploy that repo immediately.",
+        "Use this when the user wants to create a new empty Lizard service, or deploy a GitHub repository as a new service. Omit repoUrl for an empty service you configure later; provide repoUrl to deploy that repo immediately. Calling this again creates another service, even with the same name — it does not update an existing one.",
       inputSchema: {
         project: z.string().min(1),
         name: z.string().describe("Service name"),
@@ -133,11 +133,11 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "addon.create",
+    "addon_create",
     {
       title: "Create addon",
       description:
-        "Use this when the user wants to provision a managed database or storage addon (Postgres, Redis, or S3) in a Lizard project.",
+        "Use this when the user wants to provision a managed database or storage addon (Postgres, Redis, or S3) in a Lizard project. Calling this again creates another addon, even with the same name — it does not update an existing one.",
       inputSchema: {
         project: z.string().min(1),
         type: z.enum(["postgres", "redis", "s3"]),
@@ -156,7 +156,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "service.rename",
+    "service_rename",
     {
       title: "Rename service",
       description: "Use this when the user wants to rename an existing Lizard service.",
@@ -177,7 +177,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "service.delete",
+    "service_delete",
     {
       title: "Delete service",
       description:
@@ -199,7 +199,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "service.scale",
+    "service_scale",
     {
       title: "Scale service",
       description:
@@ -248,7 +248,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "service.getPort",
+    "service_get_port",
     {
       title: "Get container port",
       description: "Use this when the user wants to know which container port a Lizard app is listening on.",
@@ -266,7 +266,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "service.setPort",
+    "service_set_port",
     {
       title: "Set container port",
       description: "Use this when the user wants to change the container port a Lizard app listens on.",
@@ -285,7 +285,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "service.set",
+    "service_set",
     {
       title: "Set service build/deploy config",
       description:

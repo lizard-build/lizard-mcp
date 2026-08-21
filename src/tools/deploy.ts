@@ -6,11 +6,11 @@ import { handle } from "../lib/tool-helpers.js";
 
 export function registerDeployTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "deploy.redeploy",
+    "deploy_redeploy",
     {
       title: "Redeploy service",
       description:
-        "Use this when the user wants to trigger a new deployment of an existing Lizard service (rebuild and redeploy current source). Returns immediately once the build is triggered — use deploy.events to check progress.",
+        "Use this when the user wants to trigger a new deployment of an existing Lizard service (rebuild and redeploy current source). Returns immediately once the build is triggered — use deploy_events to check progress. Each call starts another build, even if called again immediately.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
@@ -23,11 +23,11 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "deploy.restart",
+    "deploy_restart",
     {
       title: "Restart service",
       description:
-        "Use this when the user wants to restart a running Lizard service without rebuilding it. Returns immediately.",
+        "Use this when the user wants to restart a running Lizard service without rebuilding it. Returns immediately. Each call restarts it again, even if called again immediately.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
@@ -40,7 +40,7 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "deploy.events",
+    "deploy_events",
     {
       title: "Get deploy history",
       description:

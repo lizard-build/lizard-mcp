@@ -18,7 +18,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "workspace.list",
+    "workspace_list",
     {
       title: "List workspaces",
       description:
@@ -30,7 +30,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "project.list",
+    "project_list",
     {
       title: "List projects",
       description: "Use this when the user wants to see their Lizard projects, optionally filtered to one workspace.",
@@ -43,10 +43,11 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "project.create",
+    "project_create",
     {
       title: "Create project",
-      description: "Use this when the user wants to create a brand-new empty Lizard project to hold services.",
+      description:
+        "Use this when the user wants to create a brand-new empty Lizard project to hold services. Calling this again creates another project, even with the same name — it does not update an existing one.",
       inputSchema: {
         name: z.string().min(1).describe("Project name"),
         workspaceId: z.string().min(1).describe("Workspace to create the project in"),
@@ -57,7 +58,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "region.list",
+    "region_list",
     {
       title: "List regions",
       description:

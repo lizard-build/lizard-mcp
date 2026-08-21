@@ -15,7 +15,7 @@ const IDLE_TIMEOUT_MS = 2 * 60 * 1000;
 
 export function registerSshTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "ssh.exec",
+    "ssh_exec",
     {
       title: "Run shell command",
       description:

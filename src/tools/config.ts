@@ -7,7 +7,7 @@ import { handle } from "../lib/tool-helpers.js";
 
 export function registerConfigTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "config.apply",
+    "config_apply",
     {
       title: "Apply bulk config",
       description:

@@ -12,7 +12,7 @@ interface Secret {
 
 export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "secrets.list",
+    "secrets_list",
     {
       title: "List secrets",
       description:
@@ -36,7 +36,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "secrets.set",
+    "secrets_set",
     {
       title: "Set secrets",
       description:
@@ -59,7 +59,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "secrets.delete",
+    "secrets_delete",
     {
       title: "Delete secrets",
       description:
@@ -95,7 +95,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "secrets.refs",
+    "secrets_refs",
     {
       title: "List variable references",
       description:

@@ -30,17 +30,19 @@ npm run dev
 
 | Area | Tools |
 |---|---|
-| Account | `whoami`, `workspace.list`, `project.list`, `project.create`, `region.list`, `billing.summary` |
-| Services | `service.list`, `service.show`, `service.create`, `service.set`, `service.rename`, `service.delete`, `service.scale`, `service.getPort`, `service.setPort`, `addon.create` |
-| Deploys | `deploy.redeploy`, `deploy.restart`, `deploy.events` |
-| Logs and metrics | `logs.tail`, `metrics.get` |
-| Secrets | `secrets.list`, `secrets.set`, `secrets.delete`, `secrets.refs` |
-| Domains | `domain.attach`, `domain.verify`, `domain.delete` |
-| Git | `git.connect`, `git.checkout`, `git.status` |
-| Shell | `ssh.exec` |
-| Config as code | `config.apply` |
+| Account | `whoami`, `workspace_list`, `project_list`, `project_create`, `region_list`, `billing_summary` |
+| Services | `service_list`, `service_show`, `service_create`, `service_set`, `service_rename`, `service_delete`, `service_scale`, `service_get_port`, `service_set_port`, `addon_create` |
+| Deploys | `deploy_redeploy`, `deploy_restart`, `deploy_events` |
+| Logs and metrics | `logs_tail`, `metrics_get` |
+| Secrets | `secrets_list`, `secrets_set`, `secrets_delete`, `secrets_refs` |
+| Domains | `domain_attach`, `domain_verify`, `domain_delete` |
+| Git | `git_connect`, `git_checkout`, `git_status` |
+| Shell | `ssh_exec` |
+| Config as code | `config_apply` |
 
-Destructive tools — `service.delete`, `secrets.delete`, `domain.delete` — require an explicit confirmation argument, so a client cannot delete anything by accident.
+Tool names use `snake_case` (not the MCP spec's permitted dots) to match OpenAI's function-name pattern `^[a-zA-Z0-9_-]{1,64}$`, which some ChatGPT/Codex surfaces enforce directly.
+
+Destructive tools — `service_delete`, `secrets_delete`, `domain_delete`, `ssh_exec` — require an explicit confirmation argument, so a client cannot delete anything or run arbitrary commands by accident.
 
 ## Auth
 

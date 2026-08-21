@@ -7,7 +7,7 @@ import { handle } from "../lib/tool-helpers.js";
 
 export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "metrics.get",
+    "metrics_get",
     {
       title: "Get metrics",
       description: "Use this when the user wants CPU, memory, or network metrics for a Lizard app or addon over a time range.",
@@ -37,7 +37,7 @@ export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "billing.summary",
+    "billing_summary",
     {
       title: "Get billing summary",
       description: "Use this when the user wants a cost/billing summary for a Lizard workspace, including current usage and live spend.",

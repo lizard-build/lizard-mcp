@@ -8,7 +8,7 @@ import { collectSSE } from "../lib/sse.js";
 
 export function registerLogsTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "logs.tail",
+    "logs_tail",
     {
       title: "Tail logs",
       description:

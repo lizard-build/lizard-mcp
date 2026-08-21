@@ -71,4 +71,4 @@ Requires actually running dragonlabs-platform (Postgres + `JWT_SECRET` + a real 
 2. Start `lizard-mcp` with `PLATFORM_URL` pointed at that local platform instance.
 3. In a browser, hit `{PLATFORM_URL}/oauth/authorize?...` with a CIMD client (see dragonlabs-platform's OAuth plan for how to stand up a test CIMD document), complete the consent screen, and capture the resulting access token from the `/oauth/token` exchange.
 4. Use that real token in place of `test-token-123` above, either via `@modelcontextprotocol/inspector` (`npx @modelcontextprotocol/inspector`, point it at `http://localhost:$PORT/mcp`) or the same raw curl commands.
-5. Try a real mutating tool (e.g. `service.list` against a real project) to confirm the token round-trips correctly through `ctx.api` all the way to dragonlabs-platform's actual database.
+5. Try a real mutating tool (e.g. `service_list` against a real project) to confirm the token round-trips correctly through `ctx.api` all the way to dragonlabs-platform's actual database.

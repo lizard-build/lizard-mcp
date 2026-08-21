@@ -17,11 +17,11 @@ interface GitHubStatus {
 
 export function registerGitTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
-    "git.checkout",
+    "git_checkout",
     {
       title: "Switch deploy branch",
       description:
-        "Use this when the user wants to switch which branch a Lizard service deploys from, and redeploy it on that branch. Returns immediately once the redeploy is triggered.",
+        "Use this when the user wants to switch which branch a Lizard service deploys from, and redeploy it on that branch. Returns immediately once the redeploy is triggered. Each call starts another build, even if called again immediately.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1), branch: z.string() },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
@@ -44,7 +44,7 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "git.status",
+    "git_status",
     {
       title: "Get GitHub connection status",
       description: "Use this when the user wants to see GitHub connection status and the repo/branch each service in a Lizard project is tracking.",
@@ -62,7 +62,7 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
   );
 
   server.registerTool(
-    "git.connect",
+    "git_connect",
     {
       title: "Get GitHub connect URL",
       description:

@@ -27,7 +27,7 @@ interface ScaleTargets {
 
 /**
  * Guards the app-vs-addon axis split for service.scale — replicas is
- * apps-only (addons run as a single VM), storage is addons-only (apps have
+ * apps-only (addons run as a single instance), storage is addons-only (apps have
  * no resizable data volume on this path). Exported so unit tests can cover
  * every combination without needing a live/mocked API resolution chain.
  */
@@ -37,7 +37,7 @@ export function validateScaleTargets(kind: "app" | "addon", targets: ScaleTarget
     throw new Error("Pass at least one of: replicas, cpu, memory, storage.");
   }
   if (kind === "addon" && replicas !== undefined) {
-    throw new Error("Addons run as a single VM and don't support replicas.");
+    throw new Error("Addons run as a single instance and don't support replicas.");
   }
   if (kind === "app" && storage !== undefined) {
     throw new Error("storage is only supported for addons.");

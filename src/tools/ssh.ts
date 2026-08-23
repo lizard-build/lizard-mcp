@@ -23,7 +23,7 @@ export function registerSshTools(server: McpServer, ctx: ToolContext) {
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1),
-        cmd: z.string().describe("Shell command to execute (passed to /bin/sh on the VM)"),
+        cmd: z.string().describe("Shell command to execute (passed to /bin/sh in the service container)"),
         confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },

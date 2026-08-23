@@ -34,7 +34,7 @@ describe("validateScaleTargets", () => {
   });
 
   it("rejects replicas for addons", () => {
-    expect(() => validateScaleTargets("addon", { replicas: 2 })).toThrow(/single VM/);
+    expect(() => validateScaleTargets("addon", { replicas: 2 })).toThrow(/single instance/);
   });
 
   it("rejects storage for apps", () => {

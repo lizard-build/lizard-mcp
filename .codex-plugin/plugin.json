@@ -1,0 +1,23 @@
+{
+  "name": "lizard",
+  "version": "0.1.0",
+  "description": "Deploy and manage apps, databases, and infra on Lizard (lizard.build) from ChatGPT and Codex.",
+  "homepage": "https://lizard.build",
+  "repository": "https://github.com/lizard-build/lizard-mcp",
+  "license": "MIT",
+  "keywords": ["deploy", "hosting", "paas", "postgres", "redis", "devops"],
+  "interface": {
+    "displayName": "Lizard",
+    "shortDescription": "Deploy and manage apps and databases on Lizard",
+    "longDescription": "Connect Lizard once, then ask ChatGPT or Codex to ship a service from a GitHub repo, read logs, set secrets, scale replicas, attach a domain, or provision a managed Postgres/Redis/S3 addon — in plain words. Scoped to your own Lizard workspaces and projects.",
+    "developerName": "Lizard",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://lizard.build",
+    "defaultPrompt": [
+      "Deploy github.com/me/my-app on Lizard",
+      "Show the last 50 log lines for my-app on Lizard",
+      "Scale my-app to 2 replicas"
+    ]
+  }
+}

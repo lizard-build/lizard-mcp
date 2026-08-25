@@ -59,6 +59,39 @@ npm run typecheck
 
 `test/manual/mcp-inspector.md` covers end-to-end checks against a stub platform and a live one.
 
+## Deployed instance
+
+This server itself runs as a Lizard app: `lizard-mcp` in mikelun's workspace,
+deployed straight from this repo (git-source, auto-redeploys on push to `main`).
+
+```
+https://employ-woman-g1q2.us-east-1.onlizard.com/mcp
+```
+
+`PUBLIC_URL` is set on that service to match, so `allowedHosts`/OAuth resource
+metadata line up with the real domain — see `src/index.ts`.
+
+## Publishing to Codex / ChatGPT
+
+`.codex-plugin/plugin.json` is in place. This is a hosted remote MCP server (not
+a bundled stdio one), so it's wired via `.app.json` + a registered connection,
+not `.mcp.json`. That last step needs a human in a real ChatGPT session — it
+isn't scriptable:
+
+1. In ChatGPT: **Settings → Security and login → Developer mode** (turn it on).
+2. Go to [ChatGPT Plugins](https://chatgpt.com/plugins) → **+** → enter the MCP
+   server URL above → complete the connection.
+3. Copy the resulting `plugin_asdk_app_...` ID from the browser URL.
+4. Add `.app.json` at the repo root:
+   ```json
+   { "app": { "id": "plugin_asdk_app_..." } }
+   ```
+5. Add `"apps": "./.app.json"` to `.codex-plugin/plugin.json`.
+6. Test locally via a marketplace entry (`@plugin-creator`, or hand-write
+   `~/.agents/plugins/marketplace.json`), then submit through the
+   [plugin submission portal](https://developers.openai.com/plugins/deploy/submission)
+   for public review.
+
 ## License
 
 MIT

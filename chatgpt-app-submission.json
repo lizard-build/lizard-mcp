@@ -1,0 +1,336 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Lizard",
+    "subtitle": "Deploy and manage cloud apps",
+    "description": "Lizard is a cloud platform for deploying and managing containerized apps and managed databases. Ask it to deploy a GitHub repo, provision a Postgres, Redis, or S3 addon, check logs and metrics, manage secrets, scale services, or attach a custom domain — all scoped to your own Lizard workspaces and projects.",
+    "category": "Developer Tools"
+  },
+  "tools": {
+    "whoami": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Only reads the caller's own identity from the auth token; no writes.",
+        "open_world_justification": "Calls Lizard's own /api/auth/me endpoint, nothing external.",
+        "destructive_justification": "Pure read, no state change possible."
+      }
+    },
+    "workspace_list": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Lists the caller's workspaces, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "project_list": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Lists the caller's projects, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "project_create": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Creates a new project record.",
+        "open_world_justification": "Writes only within Lizard's own platform API.",
+        "destructive_justification": "Always creates a new project; never overwrites or removes an existing one, even if called again with the same name."
+      }
+    },
+    "region_list": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Lists available deployment regions, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "service_list": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Lists apps/addons in a project, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "service_show": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads one service's config/status, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "service_create": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Creates a new app or addon, optionally triggering a build/deploy.",
+        "open_world_justification": "Any GitHub repo it builds from is fetched through Lizard's own build pipeline, not an open-ended action the tool takes on its own.",
+        "destructive_justification": "Always creates a new service; calling it again, even with the same name, creates another one rather than overwriting or removing anything existing."
+      }
+    },
+    "addon_create": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Provisions a new managed addon (Postgres/Redis/S3).",
+        "open_world_justification": "Writes only within Lizard's own platform API.",
+        "destructive_justification": "Always creates a new addon; never overwrites or removes an existing one."
+      }
+    },
+    "service_rename": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Writes a new service name.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "A name change is fully reversible (renaming back restores the prior state) and touches no data."
+      }
+    },
+    "service_delete": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Deletes a service.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Permanently deletes the service and cannot be undone; the tool requires an explicit confirm:true argument for exactly this reason."
+      }
+    },
+    "service_scale": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Writes replica count / CPU / memory / storage limits.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Resource limits and replica count can be freely raised or lowered again; no data is removed (storage is grow-only, a safety constraint, not a destructive action)."
+      }
+    },
+    "service_get_port": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads the configured container port, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "service_set_port": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Writes the container port.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "A config value change, fully reversible by setting it back."
+      }
+    },
+    "service_set": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Writes build/deploy config fields (repo, branch, build/start commands, etc.).",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Every field it touches is an editable config value, reversible by setting it again; it does not delete the service or any data."
+      }
+    },
+    "deploy_redeploy": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Triggers a new build and deploy.",
+        "open_world_justification": "Builds run through Lizard's own build pipeline against the already-configured repo.",
+        "destructive_justification": "Redeploying existing source doesn't remove anything; a failed build simply doesn't replace the running version."
+      }
+    },
+    "deploy_restart": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Restarts the running service.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "A restart with no rebuild causes no data loss."
+      }
+    },
+    "deploy_events": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads deploy/build history and pod status, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "logs_tail": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads a bounded snapshot of recent log output, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "metrics_get": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads CPU/memory/network metrics, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "billing_summary": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads a cost/usage summary, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "secrets_list": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Lists secret keys (values masked unless reveal:true), no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "secrets_set": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Writes one or more secret values, overwriting any existing value at the same key.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Overwriting a key is a normal, reversible config write (setting it again restores prior behavior); it doesn't delete the service, remove other secrets, or cause irreversible data loss the way service_delete/secrets_delete do."
+      }
+    },
+    "secrets_delete": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Removes one or more secrets.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Permanently removes the secret values and cannot be undone; the tool requires an explicit confirm:true argument for exactly this reason."
+      }
+    },
+    "secrets_refs": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Lists available ${{addon.KEY}} reference templates, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "domain_attach": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Attaches a custom domain or generates a new *.onlizard.com subdomain.",
+        "open_world_justification": "Lizard's own DNS/platform API only.",
+        "destructive_justification": "Always adds a domain; it never removes an existing one (calling it again without a hostname just generates another subdomain, per its description)."
+      }
+    },
+    "domain_verify": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Performs a real DNS check against the hostname and updates that domain's verification status server-side; it's not a pure read of already-stored state.",
+        "open_world_justification": "Lizard's own domain-verification flow only.",
+        "destructive_justification": "Verifying a domain doesn't remove or alter any other data."
+      }
+    },
+    "domain_delete": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Removes a custom domain from a service.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Permanently removes the domain and cannot be undone; the tool requires an explicit confirm:true argument for exactly this reason."
+      }
+    },
+    "git_checkout": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Switches the tracked branch and triggers a redeploy.",
+        "open_world_justification": "Lizard's own build pipeline only.",
+        "destructive_justification": "Switching branches and redeploying doesn't delete anything; prior build history and the previous branch setting are both still recoverable."
+      }
+    },
+    "git_status": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads GitHub connection status and tracked repo/branch per service, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "git_connect": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Only returns an install URL string; it does not perform the GitHub connection itself. The actual connection only happens if the user opens that URL in a browser and approves it, so calling this tool alone changes no state.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "No state change results from calling it."
+      }
+    },
+    "ssh_exec": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Runs a shell command inside the service's container.",
+        "open_world_justification": "This is the one tool that leaves Lizard's own bounded API: it executes an arbitrary, caller-supplied shell command inside the user's own running container, so its effects and outputs are open-ended and unpredictable, not limited to a fixed set of platform operations.",
+        "destructive_justification": "An arbitrary shell command can delete files or otherwise cause irreversible changes inside the container; the tool requires an explicit confirm:true argument for exactly this reason."
+      }
+    },
+    "config_apply": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Applies a bulk, config-as-code style update to services/addons/secrets in one request.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "The config body is passed through verbatim and can overwrite or remove existing fields in one call, per its own description; marked destructive to reflect that a single call can silently replace or drop existing configuration, unlike the narrower single-field tools."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Deploy a public GitHub repo as a new service in a specific region",
+      "user_prompt": "Deploy https://github.com/lizard-build/codex-react-test to Lizard in the EU West Limburg region",
+      "file_attachment_urls": null,
+      "tools_triggered": "project_list, region_list, service_create",
+      "expected_output": "Confirms a new service was created and a build was triggered for the given repo/region. Does not report a domain immediately — states the domain isn't assigned until the build finishes and offers to check back."
+    },
+    {
+      "description": "Check recent logs for a running service",
+      "user_prompt": "Show me the last logs from my api service",
+      "file_attachment_urls": null,
+      "tools_triggered": "project_list, service_list, logs_tail",
+      "expected_output": "Returns a bounded snapshot of recent log lines from the matched service, not a live stream."
+    },
+    {
+      "description": "Provision a Postgres addon and wire it into an existing app via a secret reference",
+      "user_prompt": "Add a Postgres database to my project and connect it to my api service",
+      "file_attachment_urls": null,
+      "tools_triggered": "project_list, addon_create, secrets_refs, secrets_set",
+      "expected_output": "Creates a Postgres addon, then sets a secret on the app referencing the addon's connection string via ${{name.KEY}} rather than printing raw credentials, and tells the user which ${{name.KEY}} refs are available."
+    },
+    {
+      "description": "Scale a service's replica count and memory",
+      "user_prompt": "Scale my worker service to 3 replicas and 1GB of memory",
+      "file_attachment_urls": null,
+      "tools_triggered": "project_list, service_list, service_scale",
+      "expected_output": "Confirms the replica count and memory limit were both updated on the matched service."
+    },
+    {
+      "description": "Ambiguous service name across multiple projects — edge case requiring disambiguation",
+      "user_prompt": "Restart my api service",
+      "file_attachment_urls": null,
+      "tools_triggered": "project_list, service_list",
+      "expected_output": "If more than one project has a service named 'api', asks the user which project before calling deploy_restart, rather than guessing one."
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "General knowledge question unrelated to any Lizard account or service",
+      "user_prompt": "What's the weather like in Berlin today?",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "Answers directly without calling any Lizard tool — the question has nothing to do with the user's Lizard resources."
+    },
+    {
+      "description": "Generic coding help with no connection to the user's Lizard account",
+      "user_prompt": "Write me a Python function that reverses a string",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "Writes the function directly without calling any Lizard tool — no service, deploy, or account action is implied."
+    },
+    {
+      "description": "Request to act outside Lizard's actual capability — an arbitrary machine, not a Lizard-hosted service container",
+      "user_prompt": "SSH into my personal laptop at 192.168.1.50 and delete some files",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "Declines — ssh_exec only runs commands inside the user's own Lizard service containers, not arbitrary external machines, and does not attempt the request."
+    }
+  ]
+}

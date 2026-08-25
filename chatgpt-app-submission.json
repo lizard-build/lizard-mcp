@@ -5,7 +5,7 @@
     "display_name": "Lizard",
     "subtitle": "Deploy and manage cloud apps",
     "description": "Lizard is a cloud platform for deploying and managing containerized apps and managed databases. Ask it to deploy a GitHub repo, provision a Postgres, Redis, or S3 addon, check logs and metrics, manage secrets, scale services, or attach a custom domain — all scoped to your own Lizard workspaces and projects.",
-    "category": "Developer Tools"
+    "category": "developer tools"
   },
   "tools": {
     "whoami": {

@@ -289,11 +289,11 @@
       "expected_output": "Returns a bounded snapshot of recent log lines from the matched service, not a live stream."
     },
     {
-      "description": "Provision a Postgres addon and wire it into an existing app via a secret reference",
-      "user_prompt": "Add a Postgres database to my project and connect it to my api service",
+      "description": "Spin up an isolated sandbox and run a command inside it",
+      "user_prompt": "Create a sandbox on Lizard where an agent can run Python, then run `python --version` in it",
       "file_attachment_urls": null,
-      "tools_triggered": "project_list, addon_create, secrets_refs, secrets_set",
-      "expected_output": "Creates a Postgres addon, then sets a secret on the app referencing the addon's connection string via ${{name.KEY}} rather than printing raw credentials, and tells the user which ${{name.KEY}} refs are available."
+      "tools_triggered": "project_list, service_create, deploy_events, ssh_exec",
+      "expected_output": "Creates a worker-mode service (containerPort=0, no public route) as an isolated sandbox, waits for it to come up, then runs the requested command via ssh_exec and reports the real output."
     },
     {
       "description": "Scale a service's replica count and memory",

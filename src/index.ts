@@ -22,7 +22,10 @@ async function main() {
   // reachable at boot — lizard-mcp cannot serve without it.
   const oauthMetadata = await fetchAuthorizationServerMetadata();
 
-  const app = createMcpExpressApp();
+  // Without allowedHosts, createMcpExpressApp() defaults to host: '127.0.0.1'
+  // and only accepts Host: localhost/127.0.0.1/::1 — every real deployment
+  // needs its own public host explicitly allow-listed here.
+  const app = createMcpExpressApp({ allowedHosts: [MCP_ENDPOINT.host] });
 
   // Public discovery route — no auth required to fetch it. A client needs
   // this BEFORE it has a token, to learn where to go get one.

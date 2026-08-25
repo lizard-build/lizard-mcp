@@ -26,7 +26,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Attach domain",
       description:
-        "Use this when the user wants to attach a custom domain to a Lizard service, or generate a default *.onlizard.com subdomain if they don't have a custom one yet. Calling this again without hostname generates another subdomain rather than returning the existing one.",
+        "Every app already gets a *.onlizard.com domain automatically on its first deploy (check service_show's `domain` field before calling this — do not invent or guess a hostname). Only call this tool when the user explicitly wants to attach their own custom domain (pass hostname), or when service_show shows no domain yet (e.g. the service was created with skipInitialDeploy and never deployed) and they want one generated. Calling this again without hostname generates another subdomain rather than returning the existing one.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1),

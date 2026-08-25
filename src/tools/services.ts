@@ -111,11 +111,11 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Create service",
       description:
-        "Use this when the user wants to create a new empty Lizard service, or deploy a GitHub repository as a new service. Omit repoUrl for an empty service you configure later; provide repoUrl to deploy that repo immediately. Calling this again creates another service, even with the same name — it does not update an existing one.",
+        "Use this when the user wants to create a new empty Lizard service, or deploy a GitHub repository as a new service. Omit repoUrl for an empty service you configure later; provide repoUrl to deploy that repo immediately. Calling this again creates another service, even with the same name — it does not update an existing one. A *.onlizard.com domain is assigned automatically the first time the service deploys — do not call domain_attach afterward unless the user specifically wants a custom domain; check service_show/deploy_events for the assigned hostname instead of guessing one.",
       inputSchema: {
         project: z.string().min(1),
         name: z.string().describe("Service name"),
-        region: z.string().describe("Deployment region code"),
+        region: z.string().describe("Deployment region code — call region_list first if unsure of valid values, do not guess"),
         repoUrl: z.string().optional().describe("GitHub repo URL — when provided, this becomes a deploy of that repo"),
         containerPort: z.number().int().optional(),
         envVars: z.record(z.string(), z.string()).optional(),
@@ -141,7 +141,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       inputSchema: {
         project: z.string().min(1),
         type: z.enum(["postgres", "redis", "s3"]),
-        region: z.string().describe("Deployment region code"),
+        region: z.string().describe("Deployment region code — call region_list first if unsure of valid values, do not guess"),
         name: z.string().optional().describe("Stable reference key for ${{name.KEY}} templates"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },

@@ -34,12 +34,21 @@ first rather than guessing — resolution is by exact name match, not fuzzy.
 
 ## Domains — do not guess a hostname
 
-Every app is assigned a *.onlizard.com domain automatically the first time it deploys.
-Check the "domain" field on service_show (or the response from service_create /
-deploy_events) before doing anything else. Only call domain_attach when the user
-explicitly wants to bring their own custom domain (pass hostname), or when service_show
-shows no domain yet — e.g. the service was created with skipInitialDeploy and never
-deployed. Never invent a hostname or subdomain name yourself.
+Every app is assigned a *.onlizard.com domain automatically, but not until its build
+finishes and it boots — this can take anywhere from seconds to a few minutes. The
+"domain" field is null until then, on service_create's response and on service_show
+alike. A null/empty domain right after creating or redeploying a service is normal, not
+an error — it does NOT mean a domain wasn't assigned, only that it isn't assigned *yet*.
+
+Never fabricate, guess, or predict what the hostname will look like, even as a
+placeholder — a plausible-looking fake domain is worse than no domain, because the user
+may try to use it. If the user asks for the domain right after a deploy and it's still
+null, say the deploy is still in progress and the domain will be available once it
+finishes; poll service_show or deploy_events and report back the real value once
+"domain" is actually non-null. Only call domain_attach when the user explicitly wants to
+bring their own custom domain (pass hostname), or when service_show shows no domain
+after the deploy has actually finished — e.g. the service was created with
+skipInitialDeploy and never deployed.
 
 ## Regions — do not guess a code
 

@@ -111,7 +111,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Create service",
       description:
-        "Use this when the user wants to create a new empty Lizard service, or deploy a GitHub repository as a new service. Omit repoUrl for an empty service you configure later; provide repoUrl to deploy that repo immediately. Calling this again creates another service, even with the same name — it does not update an existing one. A *.onlizard.com domain is assigned automatically the first time the service deploys — do not call domain_attach afterward unless the user specifically wants a custom domain; check service_show/deploy_events for the assigned hostname instead of guessing one.",
+        "Use this when the user wants to create a new empty Lizard service, or deploy a GitHub repository as a new service. Omit repoUrl for an empty service you configure later; provide repoUrl to deploy that repo immediately. Calling this again creates another service, even with the same name — it does not update an existing one. A *.onlizard.com domain is assigned automatically, but not until the build finishes and the service boots — this response's `domain` field will be null right after creation, that is expected, not an error. Do not invent, guess, or predict a hostname to fill that gap. Tell the user the deploy is in progress and the domain isn't assigned yet; poll service_show or deploy_events and report the real `domain` value once it's non-null.",
       inputSchema: {
         project: z.string().min(1),
         name: z.string().describe("Service name"),

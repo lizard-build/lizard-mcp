@@ -38,6 +38,13 @@ async function main() {
     }),
   );
 
+  // One-time domain-ownership proof for the ChatGPT app submission form —
+  // the token itself isn't sensitive, it's meant to be publicly fetchable at
+  // this exact origin-root path.
+  app.get("/.well-known/openai-apps-challenge", (_req, res) => {
+    res.type("text/plain").send("IuHzZZPV3A38gqW0yt4YDPrKrZeLo0zkWxEC8DiTRhM");
+  });
+
   // Protected tool-invocation route. requireBearerAuth runs first, verifies
   // the token against dragonlabs-platform's /api/auth/me (see auth.ts) and
   // populates req.auth; a fresh, stateless McpServer is built per request,

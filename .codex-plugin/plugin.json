@@ -6,12 +6,13 @@
   "repository": "https://github.com/lizard-build/lizard-mcp",
   "license": "MIT",
   "keywords": ["deploy", "hosting", "paas", "postgres", "redis", "devops"],
+  "skills": "./skills/",
   "interface": {
     "displayName": "Lizard",
     "shortDescription": "Deploy and manage apps and databases on Lizard",
     "longDescription": "Connect Lizard once, then ask ChatGPT or Codex to ship a service from a GitHub repo, read logs, set secrets, scale replicas, attach a domain, or provision a managed Postgres/Redis/S3 addon — in plain words. Scoped to your own Lizard workspaces and projects.",
     "developerName": "Lizard",
-    "category": "Developer Tools",
+    "category": "developer tools",
     "capabilities": ["Read", "Write"],
     "websiteURL": "https://lizard.build",
     "defaultPrompt": [

@@ -4,6 +4,76 @@ An MCP server that lets ChatGPT, Claude and other MCP clients deploy and manage 
 
 Connect it once, then ask your assistant to ship a service, read logs, set secrets, scale replicas or attach a domain — in plain words.
 
+## Connect a client
+
+The server speaks Streamable HTTP at `POST /mcp` — there is no stdio transport.
+A hosted instance runs at:
+
+```
+https://employ-woman-g1q2.us-east-1.onlizard.com/mcp
+```
+
+Every request carries a bearer token. A client that speaks OAuth gets one
+itself — the server advertises where, so there is nothing to paste. Clients
+that only send headers use a `liz_` API key instead:
+
+```bash
+lizard keys create my-mcp-key
+```
+
+The dashboard creates the same thing under **Sandboxes → Get started → New API
+key**. Either way the key is shown once.
+
+### Claude Code
+
+```bash
+claude mcp add --transport http lizard https://employ-woman-g1q2.us-east-1.onlizard.com/mcp
+```
+
+Claude Code runs the OAuth flow on first use. To skip it and use a key:
+
+```bash
+claude mcp add --transport http lizard https://employ-woman-g1q2.us-east-1.onlizard.com/mcp \
+  --header "Authorization: Bearer liz_your_key"
+```
+
+### Cursor and other clients configured by JSON
+
+```json
+{
+  "mcpServers": {
+    "lizard": {
+      "url": "https://employ-woman-g1q2.us-east-1.onlizard.com/mcp",
+      "headers": { "Authorization": "Bearer liz_your_key" }
+    }
+  }
+}
+```
+
+### ChatGPT
+
+ChatGPT connects to a URL and runs OAuth itself — no key to paste. It needs
+developer mode and a registered connection; see
+[Publishing to Codex / ChatGPT](#publishing-to-codex--chatgpt) below.
+
+### Against a local server
+
+Run it as described in the next section, then use `http://localhost:3000/mcp`
+in place of the hosted URL.
+
+### Check the connection
+
+```bash
+curl -sS -X POST https://employ-woman-g1q2.us-east-1.onlizard.com/mcp \
+  -H "Authorization: Bearer liz_your_key" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Without a token the same call returns `401` and a `WWW-Authenticate` header
+pointing at the OAuth metadata. That is the server working, not failing.
+
 ## Run it
 
 ```bash

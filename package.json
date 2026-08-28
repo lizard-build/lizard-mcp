@@ -2,7 +2,7 @@
   "name": "@lizard-build/mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "MCP server exposing the Lizard PaaS platform to ChatGPT and other MCP clients",
+  "description": "MCP server exposing Lizard to ChatGPT and other MCP clients",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",

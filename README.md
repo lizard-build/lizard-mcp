@@ -6,8 +6,9 @@ Connect it once, then ask your assistant to ship a service, read logs, set secre
 
 ## Connect a client
 
-The server speaks Streamable HTTP at `POST /mcp` — there is no stdio transport.
-A hosted instance runs at:
+The server speaks Streamable HTTP at `POST /mcp`, and stdio for clients that
+spawn a local process instead ([below](#run-it-over-stdio)). A hosted instance
+runs at:
 
 ```
 https://employ-woman-g1q2.us-east-1.onlizard.com/mcp
@@ -88,13 +89,36 @@ For development with reload:
 npm run dev
 ```
 
+## Run it over stdio
+
+`npm start` serves HTTP. To have a client spawn the server instead, point it at
+`dist/stdio.js`:
+
+```json
+{
+  "mcpServers": {
+    "lizard": {
+      "command": "node",
+      "args": ["/path/to/lizard-mcp/dist/stdio.js"],
+      "env": { "LIZARD_TOKEN": "liz_your_key" }
+    }
+  }
+}
+```
+
+A spawned process has no browser to run OAuth in, so the token comes from the
+environment and binds the process to one user. Without it the server still
+starts and lists its tools — calling one then returns a message asking for a
+key.
+
 ## Configuration
 
 | Variable | Default | What it does |
 |---|---|---|
-| `PORT` | `3000` | Port to listen on |
+| `PORT` | `3000` | Port to listen on (HTTP only) |
 | `PUBLIC_URL` | `http://localhost:$PORT` | The URL clients reach this server on. Sets the OAuth resource identifier, so it must match the real address in production. |
 | `PLATFORM_URL` | `https://lizard.build` | The Lizard API this server talks to |
+| `LIZARD_TOKEN` | — | API key for stdio mode, where there is no OAuth handshake. `LIZARD_API_KEY` works too. |
 
 ## Tools
 
@@ -119,6 +143,8 @@ Destructive tools — `service_delete`, `secrets_delete`, `domain_delete`, `ssh_
 The server speaks OAuth 2.1 as an MCP protected resource (RFC 9728). It holds no secrets of its own: every request carries a bearer token, and Lizard decides whether that token is valid. Both OAuth-issued tokens and `liz_` API keys work.
 
 Each request builds a fresh server bound to the caller's token, so one process serves many users without sharing state.
+
+Over stdio there is no OAuth and no per-request token — the key comes from the environment and the process serves one user, as described above.
 
 ## Tests
 

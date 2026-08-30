@@ -25,6 +25,14 @@ export function withScope(path: string, scope?: ResourceScope): string {
   return withQuery(path, { workspaceId: scope.workspaceId });
 }
 
+/**
+ * Only ever reachable from the stdio entry point: over HTTP a token is
+ * present by the time a client is built, since requireBearerAuth already
+ * verified one. See stdio.ts for why an empty token gets that far.
+ */
+export const NO_TOKEN_MESSAGE =
+  "No Lizard API key. Create one with `lizard keys create`, then set LIZARD_TOKEN and restart the server.";
+
 export class APIError extends Error {
   status: number;
   code: string;
@@ -55,6 +63,8 @@ export function createApiClient(accessToken: string) {
     body?: unknown,
     extraHeaders: Record<string, string> = {},
   ): Promise<T> {
+    if (!accessToken) throw new APIError(401, NO_TOKEN_MESSAGE);
+
     const headers: Record<string, string> = {
       "User-Agent": USER_AGENT,
       Authorization: `Bearer ${accessToken}`,

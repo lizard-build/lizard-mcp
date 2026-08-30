@@ -8,6 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:stdio": "node dist/stdio.js",
     "test": "vitest run test/unit",
     "test:watch": "vitest test/unit",
     "typecheck": "tsc --noEmit"

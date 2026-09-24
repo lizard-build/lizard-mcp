@@ -1,8 +1,30 @@
 # Manual verification
 
-Automated tests (`npm test`) cover pure logic: resolution, scale/domain validation. They don't exercise the real HTTP/auth wiring end-to-end, since that requires a live dragonlabs-platform (Postgres, GitHub OAuth app credentials) to actually issue a token. This doc covers both:
-(a) a self-contained smoke test using a tiny stub in place of dragonlabs-platform (no external dependencies, proves lizard-mcp's own wiring is correct), and
-(b) the real end-to-end flow against an actual running platform, once one is available.
+`npm test` now covers the real stdio and HTTP entry points against a local REST fixture, plus unit tests. It does not provision real infrastructure or prove that an agent chooses the right tool in Codex or Claude Code.
+
+## 2026-09-24 results (LIZARD-162)
+
+42 tests passed: 24 unit tests and 18 protocol tests. Both transports list 38 tools. The protocol tests cover workspace/project creation, repo request mapping, all three addon types, template listing/inspection/deployment, partial template failure, explicit delete confirmation, 204 responses, masked secrets, addon references, per-caller tokens, missing tokens, expired/invalid tokens and upstream auth outages.
+
+Fixes in this change:
+
+- Added `workspace_create`, `project_delete`, `template_list`, `template_show`, and `template_deploy`.
+- Invalid tokens now return HTTP 401 with OAuth discovery metadata, allowing clients to sign in again.
+- Hosts with an explicit port now pass Host validation; unknown hosts remain blocked.
+- Empty REST responses return valid MCP text content.
+- Partial template failures preserve the project ID and mark the tool result as an error.
+
+**Marketplace gate remains open.** No live Codex/Claude Code OAuth or infrastructure lifecycle run was performed. Before listing, use an approved test workspace and record the app versions, transport, resource IDs and cleanup result for each client. Run the same sequence in both:
+
+1. Install/connect, sign in, call `whoami`; expire/revoke a test token and sign in again.
+2. Create a workspace/project; deploy a small repo and a template. Follow builds, logs, status and the assigned domain until healthy.
+3. Restart and scale the service; set/read/delete variables and secrets, checking masking.
+4. Create Postgres, Redis and S3, use `secrets_refs` to connect each, and verify the service can reach them.
+5. Bind and verify an approved test domain, then remove the binding.
+6. Delete only the created services/projects with explicit confirmation. Check that no test resources remain; a project in trash retains its restore window.
+7. Try an unknown project, denied access, invalid input and a failed deploy. Record the agent's tool choice and whether its next action needs a human hint.
+
+Production/shared-environment writes and cleanup need approval. Use no real secret values in the report. File remaining bugs as separate issues linked to LIZARD-162.
 
 ## (a) Self-contained smoke test (no live platform needed)
 
@@ -71,4 +93,4 @@ Requires actually running dragonlabs-platform (Postgres + `JWT_SECRET` + a real 
 2. Start `lizard-mcp` with `PLATFORM_URL` pointed at that local platform instance.
 3. In a browser, hit `{PLATFORM_URL}/oauth/authorize?...` with a CIMD client (see dragonlabs-platform's OAuth plan for how to stand up a test CIMD document), complete the consent screen, and capture the resulting access token from the `/oauth/token` exchange.
 4. Use that real token in place of `test-token-123` above, either via `@modelcontextprotocol/inspector` (`npx @modelcontextprotocol/inspector`, point it at `http://localhost:$PORT/mcp`) or the same raw curl commands.
-5. Try a real mutating tool (e.g. `service_list` against a real project) to confirm the token round-trips correctly through `ctx.api` all the way to dragonlabs-platform's actual database.
+5. Call `service_list` against an approved real project to confirm the token round-trips correctly through `ctx.api` all the way to dragonlabs-platform's actual database.

@@ -1,6 +1,7 @@
 import type { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provider.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { OAuthMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
+import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 
 const PLATFORM_URL = process.env.PLATFORM_URL || "https://lizard.build";
 
@@ -39,6 +40,9 @@ export const tokenVerifier: OAuthTokenVerifier = {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        throw new InvalidTokenError("The access token is invalid or expired. Sign in again.");
+      }
       throw new Error(`Token verification failed: ${res.status}`);
     }
     let body: { id: string; username: string };

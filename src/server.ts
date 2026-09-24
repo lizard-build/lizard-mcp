@@ -10,6 +10,7 @@ import { registerDomainTools } from "./tools/domains.js";
 import { registerGitTools } from "./tools/git.js";
 import { registerSshTools } from "./tools/ssh.js";
 import { registerConfigTools } from "./tools/config.js";
+import { registerTemplateTools } from "./tools/templates.js";
 
 export interface ToolContext {
   api: ApiClient;
@@ -94,7 +95,7 @@ value (e.g. via logs_tail or ssh_exec) rather than assuming success.
 ## Writes are immediate and real
 
 There is no separate platform-side confirmation step — a tool call is the action.
-Destructive tools (service_delete, secrets_delete, domain_delete) require confirm:true
+Destructive tools (project_delete, service_delete, secrets_delete, domain_delete) require confirm:true
 in the call itself since there's no interactive prompt in MCP; still get the user's
 explicit go-ahead in conversation before setting it. ssh_exec runs arbitrary shell
 commands inside the service's container — only use it for commands the user would
@@ -128,6 +129,7 @@ export function getServer(accessToken: string): McpServer {
   registerGitTools(server, ctx);
   registerSshTools(server, ctx);
   registerConfigTools(server, ctx);
+  registerTemplateTools(server, ctx);
 
   return server;
 }

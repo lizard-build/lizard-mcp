@@ -6,7 +6,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
  * (e.g. a bare status message) skip it and rely on the text content block.
  */
 export function ok(data: unknown): CallToolResult {
-  const text = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  const text = typeof data === "string" ? data : JSON.stringify(data === undefined ? { ok: true } : data, null, 2);
   const isPlainObject = typeof data === "object" && data !== null;
   return {
     content: [{ type: "text", text }],

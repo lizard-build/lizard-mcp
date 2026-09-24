@@ -25,7 +25,7 @@ async function main() {
   // Without allowedHosts, createMcpExpressApp() defaults to host: '127.0.0.1'
   // and only accepts Host: localhost/127.0.0.1/::1 — every real deployment
   // needs its own public host explicitly allow-listed here.
-  const app = createMcpExpressApp({ allowedHosts: [MCP_ENDPOINT.host] });
+  const app = createMcpExpressApp({ allowedHosts: [MCP_ENDPOINT.hostname] });
 
   // Public discovery route — no auth required to fetch it. A client needs
   // this BEFORE it has a token, to learn where to go get one.

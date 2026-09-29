@@ -130,6 +130,7 @@ key.
 | Logs and metrics | `logs_tail`, `metrics_get` |
 | Secrets | `secrets_list`, `secrets_set`, `secrets_delete`, `secrets_refs` |
 | Domains | `domain_attach`, `domain_verify`, `domain_delete` |
+| Volumes | `volume_list`, `volume_resize` |
 | Git | `git_connect`, `git_checkout`, `git_status` |
 | Shell | `ssh_exec` |
 | Config as code | `config_apply` |

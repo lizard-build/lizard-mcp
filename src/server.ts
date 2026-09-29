@@ -7,6 +7,7 @@ import { registerLogsTools } from "./tools/logs.js";
 import { registerMetricsTools } from "./tools/metrics.js";
 import { registerSecretsTools } from "./tools/secrets.js";
 import { registerDomainTools } from "./tools/domains.js";
+import { registerVolumeTools } from "./tools/volumes.js";
 import { registerGitTools } from "./tools/git.js";
 import { registerSshTools } from "./tools/ssh.js";
 import { registerConfigTools } from "./tools/config.js";
@@ -23,7 +24,7 @@ export interface ToolContext {
 const INSTRUCTIONS = `
 Lizard is a PaaS: deploy GitHub repos as containerized apps, provision managed
 Postgres/Redis/S3 addons, and manage them (logs, metrics, secrets, domains, scaling,
-shell exec) — scoped to the authenticated user's own workspaces and projects.
+sandbox volumes, shell exec) — scoped to the authenticated user's own workspaces and projects.
 
 ## Mental model
 
@@ -126,6 +127,7 @@ export function getServer(accessToken: string): McpServer {
   registerMetricsTools(server, ctx);
   registerSecretsTools(server, ctx);
   registerDomainTools(server, ctx);
+  registerVolumeTools(server, ctx);
   registerGitTools(server, ctx);
   registerSshTools(server, ctx);
   registerConfigTools(server, ctx);

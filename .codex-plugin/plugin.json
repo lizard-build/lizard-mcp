@@ -17,7 +17,7 @@
     "websiteURL": "https://lizard.build",
     "defaultPrompt": [
       "Deploy github.com/me/my-app on Lizard",
-      "Spin up a sandbox on Lizard where an agent can run and test code",
+      "Create a worker service on Lizard to run a background task",
       "Show the last 50 log lines for my-app on Lizard"
     ]
   }

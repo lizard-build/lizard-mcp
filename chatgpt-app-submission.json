@@ -289,11 +289,11 @@
       "expected_output": "Returns a bounded snapshot of recent log lines from the matched service, not a live stream."
     },
     {
-      "description": "Spin up an isolated sandbox and run a command inside it",
-      "user_prompt": "Create a sandbox on Lizard where an agent can run Python, then run `python --version` in it",
+      "description": "Create a worker service and run a command inside it",
+      "user_prompt": "Create a Python worker service on Lizard, then run `python --version` in it",
       "file_attachment_urls": null,
       "tools_triggered": "project_list, service_create, deploy_events, ssh_exec",
-      "expected_output": "Creates a worker-mode service (containerPort=0, no public route) as an isolated sandbox, waits for it to come up, then runs the requested command via ssh_exec and reports the real output."
+      "expected_output": "Creates a worker-mode service (containerPort=0, no public route), waits for it to start, then runs the command via ssh_exec and reports its output. This uses the service API, not Lizard Sandboxes."
     },
     {
       "description": "Scale a service's replica count and memory",

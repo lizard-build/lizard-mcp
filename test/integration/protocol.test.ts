@@ -78,11 +78,11 @@ afterAll(async () => {
 beforeEach(() => { calls = []; authStatus = 200; reply = () => ({ body: { ok: true } }); });
 
 describe('real MCP transports against a local REST fixture', () => {
-  it('lists the same 38 tools over stdio and HTTP', async () => {
+  it('lists the same 40 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
     expect(stdio.tools.map((tool) => tool.name).sort()).toEqual(http.tools.map((tool) => tool.name).sort());
-    expect(stdio.tools).toHaveLength(38);
+    expect(stdio.tools).toHaveLength(40);
     for (const name of ['workspace_create', 'project_delete', 'template_list', 'template_show', 'template_deploy']) {
       expect(stdio.tools.find((tool) => tool.name === name)?.description).toBeTruthy();
     }
@@ -156,7 +156,7 @@ describe('real MCP transports against a local REST fixture', () => {
     const anonymous = makeClient();
     try {
       await anonymous.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: { ...env(), LIZARD_TOKEN: '', LIZARD_API_KEY: '' }, stderr: 'pipe' }));
-      expect((await anonymous.listTools()).tools).toHaveLength(38);
+      expect((await anonymous.listTools()).tools).toHaveLength(40);
       expect(texts(await anonymous.callTool({ name: 'whoami', arguments: {} }))).toContain('No Lizard API key');
     } finally { await anonymous.close(); }
   });

@@ -152,6 +152,24 @@ describe('real MCP transports against a local REST fixture', () => {
     expect(result.isError).toBe(true);
     expect(texts(result)).toBe('Name already taken');
   });
+  it('a 402 on a create gives the agent the sentence and the link to open', async () => {
+    const body = {
+      error: 'INSUFFICIENT_CREDITS', code: 'PAYMENT_REQUIRED', status: 'trial_available',
+      message: 'Start your 7-day Pro trial with $5 in credits to deploy. No charge today, then $19/month.',
+      subscribeUrl: 'https://lizard.build/profile/account-billing?subscribe=1', billingUrl: 'https://lizard.build/profile/account-billing',
+    };
+    reply = () => ({ status: 402, body });
+    for (const [name, args] of [
+      ['service_create', { project: 'demo', name: 'web', region: 'eu', repoUrl: 'https://github.com/example/app' }],
+      ['addon_create', { project: 'demo', name: 'db', type: 'postgres', region: 'eu' }],
+      ['template_deploy', { template: 'demo', workspaceId: 'w1', projectName: 'copy' }],
+    ] as const) {
+      const result: any = await invoke(name, args);
+      expect(result.isError).toBe(true);
+      expect(texts(result)).toBe(`${body.message}\nStart the Pro trial: ${body.subscribeUrl}`);
+      expect(result.structuredContent).toMatchObject({ error: { status: 402, code: 'PAYMENT_REQUIRED', paymentStatus: 'trial_available', subscribeUrl: body.subscribeUrl } });
+    }
+  });
   it('allows discovery without a stdio token and explains auth when calling a tool', async () => {
     const anonymous = makeClient();
     try {

@@ -69,7 +69,7 @@ export function registerVolumeTools(server: McpServer, ctx: ToolContext) {
       } catch (err) {
         // handle() only surfaces err.message; keep the machine-readable code
         // visible so the model can act on it (e.g. volume_too_full_to_shrink).
-        if (err instanceof APIError && err.code) throw new Error(`${err.message} (${err.code})`);
+        if (err instanceof APIError && err.code) throw new APIError(err.status, `${err.message} (${err.code})`, err.code, err.body);
         throw err;
       }
     }),

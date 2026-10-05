@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
-import { withQuery } from "../lib/api.js";
-import { handle, ok, errResult } from "../lib/tool-helpers.js";
+import { APIError, withQuery } from "../lib/api.js";
+import { apiErrResult, handle, ok, errResult } from "../lib/tool-helpers.js";
 
 export function registerTemplateTools(server: McpServer, ctx: ToolContext) {
   server.registerTool("template_list", {
@@ -35,6 +35,9 @@ export function registerTemplateTools(server: McpServer, ctx: ToolContext) {
         projectName, workspaceId, placeholderValues: placeholderValues ?? {},
       });
       return { ...ok(result), ...(result.errors?.length ? { isError: true } : {}) };
-    } catch (error) { return errResult(error instanceof Error ? error.message : String(error)); }
+    } catch (error) {
+      if (error instanceof APIError) return apiErrResult(error);
+      return errResult(error instanceof Error ? error.message : String(error));
+    }
   });
 }

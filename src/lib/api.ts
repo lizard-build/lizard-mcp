@@ -1,5 +1,6 @@
 const DEFAULT_BASE_URL = "https://lizard.build";
 const baseURL = process.env.PLATFORM_URL || DEFAULT_BASE_URL;
+
 const USER_AGENT = "lizard-mcp/0.1.0";
 
 export interface ResourceScope {
@@ -45,6 +46,68 @@ export class APIError extends Error {
   }
 }
 
+/** Old prepaid credits (`plan: "payg"`) statuses: the next step is the Credits page. */
+const CREDITS_STATUSES = new Set(["grace", "frozen", "card_required", "credits_required"]);
+
+function httpUrl(value: unknown): string | null {
+  return typeof value === "string" && /^https?:\/\//.test(value) ? value : null;
+}
+
+/** The platform's "pay first" body: `code: "PAYMENT_REQUIRED"`, or `error: "INSUFFICIENT_CREDITS"` from older servers. */
+export function isPaymentRequiredBody(body: unknown): boolean {
+  if (!body || typeof body !== "object") return false;
+  const j = body as Record<string, unknown>;
+  return j.code === "PAYMENT_REQUIRED" || j.error === "INSUFFICIENT_CREDITS";
+}
+
+/**
+ * The page an error body says to open next, with a label: the Pro trial or Start
+ * Pro (`subscribeUrl`), an unpaid invoice, the Credits page for prepaid credits
+ * accounts, or Billing (`billingUrl`). Null when the body has none.
+ */
+export function errorLink(body: unknown): { label: string; url: string } | null {
+  if (!body || typeof body !== "object") return null;
+  const j = body as Record<string, unknown>;
+  const invoiceUrl = httpUrl(j.invoiceUrl);
+  if (invoiceUrl) return { label: "Pay the open invoice", url: invoiceUrl };
+  const billingUrl = httpUrl(j.billingUrl);
+  if (!isPaymentRequiredBody(j)) return billingUrl ? { label: "Billing", url: billingUrl } : null;
+
+  const subscribeUrl = httpUrl(j.subscribeUrl);
+  const topupUrl = httpUrl(j.topupUrl);
+  const status = typeof j.status === "string" ? j.status : "";
+  if (status === "trial_available" && subscribeUrl) return { label: "Start the Pro trial", url: subscribeUrl };
+  if (status === "subscription_required" && subscribeUrl) return { label: "Start Pro", url: subscribeUrl };
+  if (CREDITS_STATUSES.has(status) && topupUrl) return { label: "Add credits", url: topupUrl };
+  const url = billingUrl ?? subscribeUrl ?? topupUrl;
+  return url ? { label: "Billing", url } : null;
+}
+
+/**
+ * Builds the APIError for a failed call from its parsed JSON body (or null).
+ *
+ * Two shapes: most routes send {error: "human text"}; billing routes send
+ * {error: "SCREAMING_CODE", message: "human text"}. For the second, the sentence is
+ * the message and the code goes to `code` -- taking `error` alone handed the agent a
+ * bare "INSUFFICIENT_CREDITS" with nothing to tell the user. A link the user has to
+ * open (Billing, the Pro trial, an invoice) goes on the next line.
+ */
+export function apiErrorFrom(status: number, statusText: string, body: unknown): APIError {
+  let msg = statusText;
+  let code = "";
+  if (body && typeof body === "object") {
+    const j = body as Record<string, unknown>;
+    const error = typeof j.error === "string" ? j.error : "";
+    const message = typeof j.message === "string" ? j.message : "";
+    const errIsCode = /^[A-Z][A-Z0-9_]*$/.test(error);
+    msg = (errIsCode ? message || error : error) || message || msg;
+    code = (typeof j.code === "string" && j.code) || (errIsCode ? error : "") || "";
+    const next = errorLink(j);
+    if (next) msg = `${msg}\n${next.label}: ${next.url}`;
+  }
+  return new APIError(status, msg, code, body);
+}
+
 export function isNotFound(err: unknown): boolean {
   return err instanceof APIError && err.status === 404;
 }
@@ -79,16 +142,11 @@ export function createApiClient(accessToken: string) {
     });
 
     if (!res.ok) {
-      let msg = res.statusText;
-      let code = "";
       let parsedBody: unknown = null;
       try {
-        const j = (await res.json()) as any;
-        parsedBody = j;
-        msg = j.error || j.message || msg;
-        code = j.code || "";
+        parsedBody = await res.json();
       } catch {}
-      throw new APIError(res.status, msg, code, parsedBody);
+      throw apiErrorFrom(res.status, res.statusText, parsedBody);
     }
 
     const text = await res.text();

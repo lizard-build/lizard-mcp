@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
-import { withQuery, withScope } from "../lib/api.js";
+import { billingPageUrl, withQuery, withScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
 
@@ -33,6 +33,33 @@ export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
         return ctx.api.get(withQuery(`/api/apps/${svc.id}/metrics`, { range }));
       }
       return ctx.api.get(withScope(withQuery(`/api/projects/${proj.id}/addons/${svc.id}/metrics`, { range }), scope));
+    }),
+  );
+
+  server.registerTool(
+    "billing_status",
+    {
+      title: "Get plan and billing status",
+      description:
+        "Use this when a tool fails with PAYMENT_REQUIRED, or the user asks about their plan, trial or bill. " +
+        "Returns the account's plan (none, pro, payg = old prepaid credits until November 1, 2026, enterprise), " +
+        "the Pro status (trialing, active, past_due, canceled), trial days and trial credits left, this month's " +
+        "credits used of the included $19 and the overage, the next charge, a pending cancel, an unpaid invoice " +
+        "link, and billingUrl. Pro is $19/month, taxes included, with $19 of credits each month. Starting Pro, " +
+        "paying and cancelling happen in the browser at billingUrl; give the user the link. With workspaceId, " +
+        "reads that workspace owner's plan.",
+      inputSchema: {
+        workspaceId: z.string().optional().describe("Read the plan of this workspace's owner instead of your own"),
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    handle(async ({ workspaceId }) => {
+      const sub = await ctx.api.get<Record<string, unknown>>(withQuery("/api/billing/subscription", { workspaceId }));
+      return {
+        ...sub,
+        billingUrl: billingPageUrl(),
+        ...(sub.plan === "payg" ? { notice: "Prepaid credits end on November 1, 2026. Start Pro in Billing before then." } : {}),
+      };
     }),
   );
 

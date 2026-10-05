@@ -1,6 +1,14 @@
 const DEFAULT_BASE_URL = "https://lizard.build";
 const baseURL = process.env.PLATFORM_URL || DEFAULT_BASE_URL;
 
+/**
+ * The Billing page a user opens in a browser. PLATFORM_URL may be an internal
+ * address, so only a public https one is used for links.
+ */
+export function billingPageUrl(): string {
+  const base = /^https:\/\//.test(baseURL) ? baseURL.replace(/\/+$/, "") : DEFAULT_BASE_URL;
+  return `${base}/profile/account-billing`;
+}
 const USER_AGENT = "lizard-mcp/0.1.0";
 
 export interface ResourceScope {

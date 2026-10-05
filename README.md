@@ -124,7 +124,7 @@ key.
 
 | Area | Tools |
 |---|---|
-| Account | `whoami`, `workspace_list`, `project_list`, `project_create`, `region_list`, `billing_summary` |
+| Account | `whoami`, `workspace_list`, `project_list`, `project_create`, `region_list`, `billing_status`, `billing_summary` |
 | Services | `service_list`, `service_show`, `service_create`, `service_set`, `service_rename`, `service_delete`, `service_scale`, `service_get_port`, `service_set_port`, `addon_create` |
 | Deploys | `deploy_redeploy`, `deploy_restart`, `deploy_events` |
 | Logs and metrics | `logs_tail`, `metrics_get` |
@@ -138,6 +138,8 @@ key.
 Tool names use `snake_case` (not the MCP spec's permitted dots) to match OpenAI's function-name pattern `^[a-zA-Z0-9_-]{1,64}$`, which some ChatGPT/Codex surfaces enforce directly.
 
 Destructive tools — `service_delete`, `secrets_delete`, `domain_delete`, `ssh_exec` — require an explicit confirmation argument, so a client cannot delete anything or run arbitrary commands by accident.
+
+`billing_status` is read-only: it shows the plan (Pro at $19/month with $19 in credits each month, the trial, prepaid credits until November 1, 2026, or enterprise) and the Billing link. Starting, paying for and cancelling Pro happen in the browser. When the account has to pay before it can create something, the tool error gives the platform's sentence with the page to open on its last line, and `structuredContent.error` carries the code (`PAYMENT_REQUIRED`), `paymentStatus` and the links.
 
 ## Auth
 

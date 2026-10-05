@@ -176,6 +176,14 @@
         "destructive_justification": "Pure read."
       }
     },
+    "billing_status": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads the account's plan, trial and credits used this month, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
     "secrets_list": {
       "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
       "justifications": {

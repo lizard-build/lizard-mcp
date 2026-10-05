@@ -6,7 +6,7 @@ description: "Core Lizard MCP usage guide. Read this before calling any lizard_*
 # Lizard platform
 
 Lizard is a unified cloud for apps, services, agents, and managed databases. This MCP
-server exposes the whole platform through 33 tools — deploy a GitHub repo, provision
+server exposes the whole platform through 41 tools — deploy a GitHub repo, provision
 managed Postgres/Redis/S3, and manage logs, metrics, secrets, domains, scaling, and
 shell exec — scoped to the caller's own workspaces and projects.
 
@@ -67,6 +67,31 @@ an error through the MCP protocol. Common cases:
   re-authenticate itself; tell the user to reconnect.
 - Validation error — a required field was missing or malformed; check the schema and
   retry with corrected arguments.
+- Payment required — see [Billing](#billing).
+
+## Billing
+
+Pro costs $19/month, taxes included, and includes $19 in credits each month for
+everything on the account. Usage above that is pay as you go, invoiced as it builds
+up. A new account starts with a 7-day trial with $5 in credits; it needs a card, and
+nothing is charged until the trial ends. Enterprise accounts pay as you go, invoiced
+monthly. Accounts on the old prepaid credits (`plan: "payg"`) keep working until
+November 1, 2026. There are no top-ups and no crypto or x402 payments.
+
+When the account needs a plan or a payment, every create (`service_create`,
+`addon_create`, `template_deploy`, `domain_attach`, redeploys) fails with code
+`PAYMENT_REQUIRED` (`INSUFFICIENT_CREDITS` from older servers). The error text is the
+platform's sentence to show the user as is, and its last line is the page to open:
+the Pro trial or Start Pro, Billing (a failed payment, trial credits used up), or the
+Credits page for prepaid credits. `structuredContent.error.paymentStatus` says which:
+`trial_available`, `subscription_required`, `trial_credits_used`, `past_due`,
+`paused`, or a prepaid credits status.
+
+`billing_status` reads the plan: trial days and credits left, this month's credits
+used of $19 and the overage, the next charge, an unpaid invoice, and `billingUrl`.
+Use it when a create fails with `PAYMENT_REQUIRED` or the user asks about their bill.
+This server cannot start, pay for or cancel a plan: give the user the link, never ask
+for card details in chat, and retry the failed call after they say they are done.
 
 ## Setup decision flow
 
@@ -217,6 +242,7 @@ service_set / service_set_port / service_rename               build/deploy confi
 service_scale                                                 replicas / cpu / memory (apps), storage (addons, grow-only)
 deploy_redeploy / deploy_restart / deploy_events              rebuild+redeploy / restart / build+pod history
 logs_tail / metrics_get / billing_summary                     recent logs / cpu+mem+net / cost summary
+billing_status                                                plan, trial, credits used this month, Billing link
 secrets_list / secrets_set / secrets_delete / secrets_refs    env vars, scoped project-wide or per-service
 domain_attach / domain_verify / domain_delete                 custom domain lifecycle
 git_checkout / git_status / git_connect                       switch branch / connection status / GitHub App install URL

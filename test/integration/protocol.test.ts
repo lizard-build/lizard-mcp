@@ -78,15 +78,16 @@ afterAll(async () => {
 beforeEach(() => { calls = []; authStatus = 200; reply = () => ({ body: { ok: true } }); });
 
 describe('real MCP transports against a local REST fixture', () => {
-  it('lists the same 40 tools over stdio and HTTP', async () => {
+  it('lists the same 41 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
     expect(stdio.tools.map((tool) => tool.name).sort()).toEqual(http.tools.map((tool) => tool.name).sort());
-    expect(stdio.tools).toHaveLength(40);
-    for (const name of ['workspace_create', 'project_delete', 'template_list', 'template_show', 'template_deploy']) {
+    expect(stdio.tools).toHaveLength(41);
+    for (const name of ['workspace_create', 'project_delete', 'template_list', 'template_show', 'template_deploy', 'billing_status']) {
       expect(stdio.tools.find((tool) => tool.name === name)?.description).toBeTruthy();
     }
     expect(stdio.tools.find((tool) => tool.name === 'project_delete')?.annotations?.destructiveHint).toBe(true);
+    expect(stdio.tools.find((tool) => tool.name === 'billing_status')?.annotations?.readOnlyHint).toBe(true);
   });
   it('creates a workspace and project with the chosen scope', async () => {
     await invoke('workspace_create', { name: 'Demo' });
@@ -170,11 +171,23 @@ describe('real MCP transports against a local REST fixture', () => {
       expect(result.structuredContent).toMatchObject({ error: { status: 402, code: 'PAYMENT_REQUIRED', paymentStatus: 'trial_available', subscribeUrl: body.subscribeUrl } });
     }
   });
+  it('billing_status reads the plan and adds the Billing link', async () => {
+    reply = () => ({ body: { plan: 'pro', status: 'trialing', trial: { endsAt: 1, usedCents: 120, remainingCents: 380 }, period: null } });
+    const own = await invoke('billing_status');
+    expect(own.structuredContent).toMatchObject({ plan: 'pro', status: 'trialing', billingUrl: 'https://lizard.build/profile/account-billing' });
+    reply = () => ({ body: { plan: 'payg', status: 'none' } });
+    const member = await invoke('billing_status', { workspaceId: 'w 1' });
+    expect(member.structuredContent).toMatchObject({ plan: 'payg', notice: expect.stringContaining('November 1, 2026') });
+    expect(calls.map((call) => [call.method, call.url])).toEqual([
+      ['GET', '/api/billing/subscription'],
+      ['GET', '/api/billing/subscription?workspaceId=w+1'],
+    ]);
+  });
   it('allows discovery without a stdio token and explains auth when calling a tool', async () => {
     const anonymous = makeClient();
     try {
       await anonymous.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: { ...env(), LIZARD_TOKEN: '', LIZARD_API_KEY: '' }, stderr: 'pipe' }));
-      expect((await anonymous.listTools()).tools).toHaveLength(40);
+      expect((await anonymous.listTools()).tools).toHaveLength(41);
       expect(texts(await anonymous.callTool({ name: 'whoami', arguments: {} }))).toContain('No Lizard API key');
     } finally { await anonymous.close(); }
   });

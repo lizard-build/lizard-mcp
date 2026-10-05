@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { APIError, apiErrorFrom, createApiClient, errorLink } from "../../src/lib/api.js";
+import { APIError, apiErrorFrom, billingPageUrl, createApiClient, errorLink } from "../../src/lib/api.js";
 import { handle } from "../../src/lib/tool-helpers.js";
 
 const pro402 = {
@@ -74,5 +74,9 @@ describe("API errors carry the platform's sentence and the page to open", () => 
         subscribeUrl: pro402.subscribeUrl, billingUrl: pro402.billingUrl, topupUrl: pro402.topupUrl,
       },
     });
+  });
+
+  it("the Billing link is public even when PLATFORM_URL is not", () => {
+    expect(billingPageUrl()).toMatch(/^https:\/\/.+\/profile\/account-billing$/);
   });
 });

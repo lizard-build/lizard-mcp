@@ -231,6 +231,18 @@ call `domain_attach` for a user-supplied custom domain, or when a deploy has act
 finished and `service_show` still shows no domain (e.g. it was created with
 `skipInitialDeploy`).
 
+## Pausing a service, project or workspace
+
+`service_pause`, `project_pause` and `workspace_pause` stop services without deleting
+anything: each scales to 0 (an app's URL answers 503, a database refuses connections)
+and keeps its URL, database host, port, password, settings and volumes. `*_resume`
+starts them again from the same image, with their data. While paused nothing is billed
+for compute. A paused service can't be restarted or redeployed until it is resumed.
+When the user wants to stop paying for something they may want back, pause it instead of
+deleting it. The project/workspace calls return `done` and `skipped` (with a `reason`,
+e.g. "already paused"): report the skipped ones. Services paused by a billing freeze
+stay paused until the account is paid.
+
 ## Common tools
 
 ```
@@ -241,6 +253,8 @@ service_create (repoUrl) / addon_create                      deploy a repo / pro
 service_set / service_set_port / service_rename               build/deploy config, port, name
 service_scale                                                 replicas / cpu / memory (apps), storage (addons, grow-only)
 deploy_redeploy / deploy_restart / deploy_events              rebuild+redeploy / restart / build+pod history
+service_pause / service_resume                                stop one app or database without deleting it / start it again
+project_pause / project_resume, workspace_pause / _resume     the same for every service of a project / workspace (owner)
 logs_tail / metrics_get / billing_summary                     recent logs / cpu+mem+net / cost summary
 billing_status                                                plan, trial, credits used this month, Billing link
 secrets_list / secrets_set / secrets_delete / secrets_refs    env vars, scoped project-wide or per-service

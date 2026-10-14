@@ -34,6 +34,36 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
     }),
   );
 
+  for (const op of ["pause", "resume"] as const) {
+    server.registerTool(
+      `project_${op}`,
+      {
+        title: op === "pause" ? "Pause project" : "Resume project",
+        description: op === "pause"
+          ? "Use this when the user wants to stop every service of a Lizard project without deleting anything: each app and database scales to 0, keeping its URL, host, port, password, settings and volumes. Returns what was paused and what was skipped, with why. Undo with project_resume."
+          : "Use this when the user wants to start again the services of a Lizard project that they paused. Services paused by a billing freeze stay paused until the account is paid. Returns what was resumed and what was skipped, with why.",
+        inputSchema: { project: z.string().min(1).describe("Project name, slug, or ID") },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      },
+      handle(async ({ project }) => {
+        const target = await resolveProject(ctx.api, project);
+        return ctx.api.post(withScope(`/api/projects/${encodeURIComponent(target.id)}/${op}`, { workspaceId: target.workspaceId }));
+      }),
+    );
+    server.registerTool(
+      `workspace_${op}`,
+      {
+        title: op === "pause" ? "Pause workspace" : "Resume workspace",
+        description: op === "pause"
+          ? "Use this when the workspace owner wants to stop every service in every project of a workspace without deleting anything (same as project_pause for each project). Owner only. Undo with workspace_resume."
+          : "Use this when the workspace owner wants to start again everything they paused in a workspace. Owner only. Returns what was resumed and what was skipped, with why.",
+        inputSchema: { workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)") },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      },
+      handle(async ({ workspaceId }) => ctx.api.post(`/api/workspaces/${encodeURIComponent(workspaceId)}/${op}`)),
+    );
+  }
+
   server.registerTool(
     "whoami",
     {

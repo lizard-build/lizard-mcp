@@ -8,6 +8,54 @@
     "category": "developer tools"
   },
   "tools": {
+    "service_pause": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Changes whether the service run: scales them to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the service keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
+    "service_resume": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Changes whether the service run: scales them to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the service keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
+    "project_pause": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Changes whether the project's services run: scales them to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the project's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
+    "project_resume": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Changes whether the project's services run: scales them to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the project's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
+    "workspace_pause": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Changes whether the workspace's services run: scales them to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the workspace's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
+    "workspace_resume": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Changes whether the workspace's services run: scales them to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the workspace's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
     "whoami": {
       "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
       "justifications": {

@@ -198,6 +198,30 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     }),
   );
 
+  for (const op of ["pause", "resume"] as const) {
+    server.registerTool(
+      `service_${op}`,
+      {
+        title: op === "pause" ? "Pause service" : "Resume service",
+        description: op === "pause"
+          ? "Use this when the user wants to stop a Lizard service (app or database) without deleting it: it scales to 0, its URL answers 503 and a database refuses connections. Its URL, database host, port, password, settings and volumes are all kept, and nothing is billed for compute while paused. Undo with service_resume."
+          : "Use this when the user wants to start a paused Lizard service (app or database) again. It comes back from the same image with the same URL, host, port, password, settings and data. Pausing or resuming one that already is does nothing.",
+        inputSchema: {
+          project: z.string().min(1).describe("Project name, slug, or ID"),
+          service: z.string().min(1).describe("App or database name or ID"),
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      },
+      handle(async ({ project, service }) => {
+        const proj = await resolveProject(ctx.api, project);
+        const scope = { workspaceId: proj.workspaceId };
+        const svc = await resolveService(ctx.api, proj.id, service, scope);
+        if (svc.kind === "app") return ctx.api.post(withScope(`/api/apps/${svc.id}/${op}`, scope));
+        return ctx.api.post(withScope(`/api/projects/${proj.id}/addons/${svc.id}/${op}`, scope));
+      }),
+    );
+  }
+
   server.registerTool(
     "service_scale",
     {

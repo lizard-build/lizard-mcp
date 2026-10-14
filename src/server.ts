@@ -93,6 +93,15 @@ value (e.g. via logs_tail or ssh_exec) rather than assuming success.
 - secrets_set / secrets_delete: applied live, service restarts to pick them up, no
   rebuild needed.
 
+## Pausing instead of deleting
+
+- service_pause / project_pause / workspace_pause stop services without deleting anything:
+  each scales to 0 (app URL answers 503, database refuses connections) and keeps its URL,
+  database host, port, password, settings and volumes. Resume with *_resume; the service
+  starts again from the same image with its data. Prefer this over service_delete when the
+  user wants to stop paying for something they may want back.
+- A paused service is not restarted or redeployed (those return an error) until resumed.
+
 ## Writes are immediate and real
 
 There is no separate platform-side confirmation step — a tool call is the action.

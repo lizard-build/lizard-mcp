@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
-import { withScope } from "../lib/api.js";
+import { withScope, type ResourceScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
 
@@ -221,6 +221,55 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       }),
     );
   }
+
+  // Serverless ("sleep when idle", app sleep): after idleMinutes with no traffic the service
+  // sleeps with its memory saved and the next request or connection wakes it in about a second.
+  const sleepPath = (projId: string, svc: { id: string; kind: "app" | "addon" }, scope: ResourceScope) =>
+    svc.kind === "app"
+      ? withScope(`/api/apps/${svc.id}/sleep`, scope)
+      : withScope(`/api/projects/${projId}/addons/${svc.id}/sleep`, scope);
+
+  server.registerTool(
+    "service_sleep_status",
+    {
+      title: "Serverless status",
+      description:
+        "Use this when the user asks whether a Lizard service (app or Postgres/Redis database) is serverless, i.e. sleeps when idle: returns enabled, idleMinutes, how many times it slept and woke, and the last error if it could not sleep.",
+      inputSchema: {
+        project: z.string().min(1).describe("Project name, slug, or ID"),
+        service: z.string().min(1).describe("App or database name or ID"),
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    handle(async ({ project, service }) => {
+      const proj = await resolveProject(ctx.api, project);
+      const scope = { workspaceId: proj.workspaceId };
+      const svc = await resolveService(ctx.api, proj.id, service, scope);
+      return ctx.api.get(sleepPath(proj.id, svc, scope));
+    }),
+  );
+
+  server.registerTool(
+    "service_sleep_set",
+    {
+      title: "Turn serverless on or off",
+      description:
+        "Use this when the user wants a Lizard service to be serverless (sleep when idle) or always on. On: with no traffic for idleMinutes (5-1440, default 15) it sleeps with its memory saved, costs almost nothing, and the next request or connection wakes it in about a second. Turning it on restarts the service once. Works for apps with one replica and a port, and for Postgres/Redis databases; the error says why otherwise.",
+      inputSchema: {
+        project: z.string().min(1).describe("Project name, slug, or ID"),
+        service: z.string().min(1).describe("App or database name or ID"),
+        enabled: z.boolean().describe("true: sleep when idle; false: always on"),
+        idleMinutes: z.number().int().min(5).max(1440).optional().describe("Minutes without traffic before it sleeps"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    handle(async ({ project, service, enabled, idleMinutes }) => {
+      const proj = await resolveProject(ctx.api, project);
+      const scope = { workspaceId: proj.workspaceId };
+      const svc = await resolveService(ctx.api, proj.id, service, scope);
+      return ctx.api.put(sleepPath(proj.id, svc, scope), { enabled, ...(idleMinutes ? { idleMinutes } : {}) });
+    }),
+  );
 
   server.registerTool(
     "service_scale",

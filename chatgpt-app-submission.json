@@ -8,6 +8,22 @@
     "category": "developer tools"
   },
   "tools": {
+    "service_sleep_status": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads whether the service sleeps when idle and its sleep counters; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "service_sleep_set": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Turns sleeping when idle on or off for the service.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted: a sleeping service keeps its memory, URL and data and wakes on the next request; turning it off makes it always on again."
+      }
+    },
     "service_pause": {
       "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
       "justifications": {

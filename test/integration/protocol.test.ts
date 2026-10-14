@@ -78,12 +78,12 @@ afterAll(async () => {
 beforeEach(() => { calls = []; authStatus = 200; reply = () => ({ body: { ok: true } }); });
 
 describe('real MCP transports against a local REST fixture', () => {
-  it('lists the same 47 tools over stdio and HTTP', async () => {
+  it('lists the same 49 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
     expect(stdio.tools.map((tool) => tool.name).sort()).toEqual(http.tools.map((tool) => tool.name).sort());
-    expect(stdio.tools).toHaveLength(47);
-    for (const name of ['workspace_create', 'project_delete', 'template_list', 'template_show', 'template_deploy', 'billing_status', 'service_pause', 'service_resume', 'project_pause', 'project_resume', 'workspace_pause', 'workspace_resume']) {
+    expect(stdio.tools).toHaveLength(49);
+    for (const name of ['workspace_create', 'project_delete', 'template_list', 'template_show', 'template_deploy', 'billing_status', 'service_pause', 'service_resume', 'project_pause', 'project_resume', 'workspace_pause', 'workspace_resume', 'service_sleep_status', 'service_sleep_set']) {
       expect(stdio.tools.find((tool) => tool.name === name)?.description).toBeTruthy();
     }
     expect(stdio.tools.find((tool) => tool.name === 'project_delete')?.annotations?.destructiveHint).toBe(true);
@@ -103,6 +103,17 @@ describe('real MCP transports against a local REST fixture', () => {
     for (const name of ['service_pause', 'project_pause', 'workspace_pause']) {
       expect((await client.listTools()).tools.find((tool) => tool.name === name)?.annotations?.destructiveHint).toBe(false);
     }
+  });
+  it('reads and sets serverless (sleep when idle) for a service', async () => {
+    await invoke('service_sleep_status', { project: 'demo', service: 'web' });
+    await invoke('service_sleep_set', { project: 'demo', service: 'web', enabled: true, idleMinutes: 30 });
+    await invoke('service_sleep_set', { project: 'demo', service: 'web', enabled: false });
+    expect(calls.filter((c) => c.url.includes('/sleep')).map((c) => `${c.method} ${c.url}`)).toEqual([
+      'GET /api/apps/a1/sleep?workspaceId=w1',
+      'PUT /api/apps/a1/sleep?workspaceId=w1',
+      'PUT /api/apps/a1/sleep?workspaceId=w1',
+    ]);
+    expect(writes().map((w) => w.body)).toEqual([{ enabled: true, idleMinutes: 30 }, { enabled: false }]);
   });
   it('creates a workspace and project with the chosen scope', async () => {
     await invoke('workspace_create', { name: 'Demo' });
@@ -202,7 +213,7 @@ describe('real MCP transports against a local REST fixture', () => {
     const anonymous = makeClient();
     try {
       await anonymous.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: { ...env(), LIZARD_TOKEN: '', LIZARD_API_KEY: '' }, stderr: 'pipe' }));
-      expect((await anonymous.listTools()).tools).toHaveLength(47);
+      expect((await anonymous.listTools()).tools).toHaveLength(49);
       expect(texts(await anonymous.callTool({ name: 'whoami', arguments: {} }))).toContain('No Lizard API key');
     } finally { await anonymous.close(); }
   });

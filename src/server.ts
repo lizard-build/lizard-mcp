@@ -101,6 +101,9 @@ value (e.g. via logs_tail or ssh_exec) rather than assuming success.
   starts again from the same image with its data. Prefer this over service_delete when the
   user wants to stop paying for something they may want back.
 - A paused service is not restarted or redeployed (those return an error) until resumed.
+- service_sleep_set makes a service serverless (sleeps when idle with its memory saved,
+  wakes in ~1 s on the next request) or always on. Unlike pause, a sleeping service wakes
+  by itself.
 
 ## Writes are immediate and real
 

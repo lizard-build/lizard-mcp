@@ -243,6 +243,15 @@ deleting it. The project/workspace calls return `done` and `skipped` (with a `re
 e.g. "already paused"): report the skipped ones. Services paused by a billing freeze
 stay paused until the account is paid.
 
+## Serverless (sleep when idle)
+
+`service_sleep_set` with `enabled: true` makes an app (one replica, with a port) or a
+Postgres/Redis database serverless: after `idleMinutes` (5-1440, default 15) with no
+traffic it sleeps with its memory saved and costs almost nothing; the next request or
+connection wakes it in about a second, where it left off. Turning it on restarts it
+once. `enabled: false` makes it always on. Pause is different: a paused service never
+wakes by itself until it is resumed.
+
 ## Common tools
 
 ```
@@ -255,6 +264,7 @@ service_scale                                                 replicas / cpu / m
 deploy_redeploy / deploy_restart / deploy_events              rebuild+redeploy / restart / build+pod history
 service_pause / service_resume                                stop one app or database without deleting it / start it again
 project_pause / project_resume, workspace_pause / _resume     the same for every service of a project / workspace (owner)
+service_sleep_status / service_sleep_set                      serverless: sleep when idle (memory saved, ~1 s wake) or always on
 logs_tail / metrics_get / billing_summary                     recent logs / cpu+mem+net / cost summary
 billing_status                                                plan, trial, credits used this month, Billing link
 secrets_list / secrets_set / secrets_delete / secrets_refs    env vars, scoped project-wide or per-service

@@ -1,0 +1,56 @@
+name: Publish MCP Registry
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mcp-registry-catalog-20261016]
+    paths:
+      - server.json
+      - .github/workflows/publish-mcp.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-registry-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'lizard-build/lizard-mcp'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate registry metadata
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          from pathlib import Path
+          data = Path('server.json').read_bytes()
+          request = urllib.request.Request(
+              'https://registry.modelcontextprotocol.io/v0.1/validate',
+              data=data, headers={'Content-Type': 'application/json'},
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              result = json.load(response)
+          print(json.dumps(result))
+          if result.get('valid') is not True:
+              raise SystemExit('Registry metadata validation failed')
+          PY
+      - name: Install pinned publisher
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/mcp-publisher.tar.gz"
+          printf '%s  %s\n' \
+            a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc \
+            "$RUNNER_TEMP/mcp-publisher.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/mcp-publisher.tar.gz" -C "$RUNNER_TEMP" mcp-publisher
+      - name: Authenticate with GitHub OIDC
+        run: '"$RUNNER_TEMP/mcp-publisher" login github-oidc'
+      - name: Publish hosted server
+        run: '"$RUNNER_TEMP/mcp-publisher" publish server.json'

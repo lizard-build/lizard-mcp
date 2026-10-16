@@ -121,6 +121,16 @@ describe('real MCP transports against a local REST fixture', () => {
     expect(calls.find(call => call.url === '/api/sandboxes/stdio-sandbox')?.auth).toBe('Bearer liz_fixture');
     expect(calls.find(call => call.url === '/api/sandboxes/http-sandbox')?.auth).toBe('Bearer liz_http_fixture');
   });
+  it('passes an OAuth caller token through as Bearer for sandbox tools', async () => {
+    const oauth = makeClient();
+    await oauth.connect(new StreamableHTTPClientTransport(new URL(mcpUrl), { requestInit: { headers: { Authorization: 'Bearer oauth_fixture' } } }));
+    reply = () => ({ body: { stdout: 'ok', stderr: '', exitCode: 0 } });
+    try {
+      const result = await oauth.callTool({ name: 'sandbox_exec', arguments: { sandboxId: 's1', command: 'echo ok', confirm: true } });
+      expect(result.isError).not.toBe(true);
+      expect(writes()[0]?.auth).toBe('Bearer oauth_fixture');
+    } finally { await oauth.close(); }
+  });
   it('uses remote file paths and preserves paths and UTF-8', async () => {
     reply = call => call.url.includes('/files?') ? { text: 'Привет 🦎' } : { body: call.url.includes('/files/stat') ? { size: 16 } : { sandboxId: 's1' } };
     const file = "notes/a 'тест.txt";

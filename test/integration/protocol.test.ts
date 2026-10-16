@@ -7,7 +7,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 type Call = { method: string; url: string; body?: any; auth?: string };
-type Reply = { status?: number; body?: unknown };
+type Reply = { status?: number; body?: unknown; text?: string };
 let platform: Server;
 let platformUrl: string;
 let mcpUrl: string;
@@ -43,7 +43,7 @@ beforeAll(async () => {
       else result = reply(call);
     }
     res.writeHead(result.status ?? 200, { 'Content-Type': 'application/json' });
-    res.end(result.status === 204 ? undefined : JSON.stringify(result.body ?? {}));
+    res.end(result.status === 204 ? undefined : result.text ?? JSON.stringify(result.body ?? {}));
   });
   platform.listen(0, '127.0.0.1');
   await once(platform, 'listening');
@@ -78,16 +78,83 @@ afterAll(async () => {
 beforeEach(() => { calls = []; authStatus = 200; reply = () => ({ body: { ok: true } }); });
 
 describe('real MCP transports against a local REST fixture', () => {
-  it('lists the same 49 tools over stdio and HTTP', async () => {
+  it('lists the same 56 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
     expect(stdio.tools.map((tool) => tool.name).sort()).toEqual(http.tools.map((tool) => tool.name).sort());
-    expect(stdio.tools).toHaveLength(49);
+    expect(stdio.tools).toHaveLength(56);
     for (const name of ['workspace_create', 'project_delete', 'template_list', 'template_show', 'template_deploy', 'billing_status', 'service_pause', 'service_resume', 'project_pause', 'project_resume', 'workspace_pause', 'workspace_resume', 'service_sleep_status', 'service_sleep_set']) {
       expect(stdio.tools.find((tool) => tool.name === name)?.description).toBeTruthy();
     }
     expect(stdio.tools.find((tool) => tool.name === 'project_delete')?.annotations?.destructiveHint).toBe(true);
     expect(stdio.tools.find((tool) => tool.name === 'billing_status')?.annotations?.readOnlyHint).toBe(true);
+    expect(stdio.tools.find((tool) => tool.name === 'sandbox_read_file')?.annotations?.readOnlyHint).toBe(true);
+    expect(stdio.tools.find((tool) => tool.name === 'sandbox_exec')?.annotations?.destructiveHint).toBe(true);
+  });
+  it('requires sandbox confirmation and rejects IDs and oversized text before requests', async () => {
+    for (const [name, args] of [
+      ['sandbox_create', { project: 'demo' }],
+      ['sandbox_exec', { sandboxId: 's1', command: 'ls' }],
+      ['sandbox_delete', { sandboxId: 's1' }],
+      ['sandbox_show', { sandboxId: '../other' }],
+      ['sandbox_write_file', { sandboxId: 's1', path: 'x', content: '🦎'.repeat(20000), confirm: true }],
+    ] as const) {
+      expect((await invoke(name, args)).isError).toBe(true);
+    }
+    expect(calls).toEqual([]);
+  });
+  it('creates a finite sandbox in the resolved project without injecting credentials', async () => {
+    reply = () => ({ body: { sandboxId: 's1' } });
+    const result = await invoke('sandbox_create', { project: 'demo', confirm: true });
+    expect(result.isError).not.toBe(true);
+    expect(writes()).toEqual([{ method: 'POST', url: '/api/sandboxes', auth: 'Bearer liz_fixture', body: {
+      template: 'interpreter', size: 'small', timeoutMs: 300000, projectId: 'p1', metadata: { integration: 'lizard-mcp' },
+    } }]);
+    expect(texts(result)).not.toContain('liz_fixture');
+  });
+  it('keeps sandbox credentials separate for concurrent MCP clients', async () => {
+    reply = call => ({ body: { sandboxId: call.url.split('/').at(-1) } });
+    await Promise.all([
+      invoke('sandbox_show', { sandboxId: 'stdio-sandbox' }),
+      httpClient.callTool({ name: 'sandbox_show', arguments: { sandboxId: 'http-sandbox' } }),
+    ]);
+    expect(calls.find(call => call.url === '/api/sandboxes/stdio-sandbox')?.auth).toBe('Bearer liz_fixture');
+    expect(calls.find(call => call.url === '/api/sandboxes/http-sandbox')?.auth).toBe('Bearer liz_http_fixture');
+  });
+  it('passes an OAuth caller token through as Bearer for sandbox tools', async () => {
+    const oauth = makeClient();
+    await oauth.connect(new StreamableHTTPClientTransport(new URL(mcpUrl), { requestInit: { headers: { Authorization: 'Bearer oauth_fixture' } } }));
+    reply = () => ({ body: { stdout: 'ok', stderr: '', exitCode: 0 } });
+    try {
+      const result = await oauth.callTool({ name: 'sandbox_exec', arguments: { sandboxId: 's1', command: 'echo ok', confirm: true } });
+      expect(result.isError).not.toBe(true);
+      expect(writes()[0]?.auth).toBe('Bearer oauth_fixture');
+    } finally { await oauth.close(); }
+  });
+  it('uses remote file paths and preserves paths and UTF-8', async () => {
+    reply = call => call.url.includes('/files?') ? { text: 'Привет 🦎' } : { body: call.url.includes('/files/stat') ? { size: 16 } : { sandboxId: 's1' } };
+    const file = "notes/a 'тест.txt";
+    const result = await invoke('sandbox_write_file', { sandboxId: 's1', path: file, content: 'Привет 🦎', confirm: true });
+    expect(result.isError).not.toBe(true);
+    expect(writes()[0]).toMatchObject({ url: '/api/sandboxes/s1/files', body: { path: `/workspace/${file}`, content: 'Привет 🦎' } });
+    const read = await invoke('sandbox_read_file', { sandboxId: 's1', path: file });
+    expect(texts(read)).toContain('Привет 🦎');
+    expect(calls.some(call => decodeURIComponent(call.url.replaceAll('+', ' ')).includes(`/workspace/${file}`))).toBe(true);
+  });
+  it('returns nonzero command exits without deleting the sandbox and clips output', async () => {
+    reply = call => ({ body: call.url.endsWith('/exec') ? { stdout: '€'.repeat(30000), stderr: 'failure', exitCode: 7 } : { sandboxId: 's1' } });
+    const result = await invoke('sandbox_exec', { sandboxId: 's1', command: 'run', confirm: true });
+    expect(result.isError).not.toBe(true);
+    const output = result.structuredContent as { exitCode: number; stdout: string; truncated: boolean };
+    expect(output.exitCode).toBe(7);
+    expect(output.truncated).toBe(true);
+    expect(Buffer.byteLength(output.stdout)).toBeLessThanOrEqual(65536);
+    expect(calls.some(call => call.method === 'DELETE')).toBe(false);
+  });
+  it('destroys a sandbox after a failed command request, without retrying the command', async () => {
+    reply = call => call.url.endsWith('/exec') ? { status: 502, body: { error: 'upstream disconnected' } } : { body: { sandboxId: 's1' } };
+    expect((await invoke('sandbox_exec', { sandboxId: 's1', command: 'run', confirm: true })).isError).toBe(true);
+    expect(writes().map(call => `${call.method} ${call.url}`)).toEqual(['POST /api/sandboxes/s1/exec', 'DELETE /api/sandboxes/s1']);
   });
   it('pauses and resumes a service, a project and a workspace (never destructive)', async () => {
     await invoke('service_pause', { project: 'demo', service: 'web' });
@@ -213,7 +280,7 @@ describe('real MCP transports against a local REST fixture', () => {
     const anonymous = makeClient();
     try {
       await anonymous.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: { ...env(), LIZARD_TOKEN: '', LIZARD_API_KEY: '' }, stderr: 'pipe' }));
-      expect((await anonymous.listTools()).tools).toHaveLength(49);
+      expect((await anonymous.listTools()).tools).toHaveLength(56);
       expect(texts(await anonymous.callTool({ name: 'whoami', arguments: {} }))).toContain('No Lizard API key');
     } finally { await anonymous.close(); }
   });

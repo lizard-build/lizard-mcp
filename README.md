@@ -133,6 +133,7 @@ key.
 | Volumes | `volume_list`, `volume_resize` |
 | Git | `git_connect`, `git_checkout`, `git_status` |
 | Shell | `ssh_exec` |
+| Sandboxes | `sandbox_list`, `sandbox_show`, `sandbox_create`, `sandbox_exec`, `sandbox_read_file`, `sandbox_write_file`, `sandbox_delete` |
 | Config as code | `config_apply` |
 
 Tool names use `snake_case` (not the MCP spec's permitted dots) to match OpenAI's function-name pattern `^[a-zA-Z0-9_-]{1,64}$`, which some ChatGPT/Codex surfaces enforce directly.
@@ -140,6 +141,24 @@ Tool names use `snake_case` (not the MCP spec's permitted dots) to match OpenAI'
 Destructive tools — `service_delete`, `secrets_delete`, `domain_delete`, `ssh_exec` — require an explicit confirmation argument, so a client cannot delete anything or run arbitrary commands by accident.
 
 `billing_status` is read-only: it shows the plan (Pro at $19/month with $19 in credits each month, the trial, prepaid credits until November 1, 2026, or enterprise) and the Billing link. Starting, paying for and cancelling Pro happen in the browser. When the account has to pay before it can create something, the tool error gives the platform's sentence with the page to open on its last line, and `structuredContent.error` carries the code (`PAYMENT_REQUIRED`), `paymentStatus` and the links.
+
+## Sandbox workflow
+
+Lizard (lizard.build) provides Lizard Sandboxes for short-lived code execution. These resources are separate from app services. Start with `project_list`, then call `sandbox_create` with the chosen project and `confirm: true`. Keep the returned `sandboxId` for later calls.
+
+```json
+{"name":"sandbox_create","arguments":{"project":"YOUR_PROJECT_ID","lifetimeMs":300000,"confirm":true}}
+```
+
+Use `sandbox_write_file` to write a script, `sandbox_exec` to run it, and `sandbox_read_file` to read its results. Finish with `sandbox_delete`. Create, execute, write, and delete need the user's approval before the client sets `confirm: true`. The MCP server does not open a confirmation dialog.
+
+Sandboxes use the `interpreter` template, size `small`, with `/workspace` as the default path. They expire after five minutes by default; `lifetimeMs` accepts 60,000–3,600,000 milliseconds. Expiry or deletion loses all files. Creation uses billed cloud resources. Host files, environment variables, and access tokens stay out of the sandbox.
+
+Commands run as root within the sandbox, default to a 60-second timeout, and accept up to 120 seconds. Cancellation, timeout, or an uncertain command request destroys the whole sandbox to stop remote work. The `confirm` field covers this loss of files. Use a sandbox created for the task; keep needed files elsewhere first. A normal nonzero exit code preserves the sandbox. Access or input rejection does not delete it. The server never retries commands automatically.
+
+Text reads and writes accept up to 64 KiB of UTF-8. Each output stream is capped at 64 KiB and includes a truncation flag. All paths refer to the sandbox. `sandbox_show` and `sandbox_list` help check an uncertain result before retrying. `sandbox_delete` treats a sandbox that is already gone as a successful no-op.
+
+The HTTP server handles each call with its caller's Bearer token, including OAuth tokens and API keys. It keeps no shared sandbox handles or global SDK credentials. A disconnected client must reconnect to delete its sandbox; its finite lifetime remains the cleanup backstop.
 
 ## Auth
 
@@ -152,9 +171,12 @@ Over stdio there is no OAuth and no per-request token — the key comes from the
 ## Tests
 
 ```bash
-npm test        # unit tests
+npm test        # unit and MCP transport tests
 npm run typecheck
+npm run build
 ```
+
+To test real sandbox resources, set `LIZARD_API_KEY`, `LIZARD_PROJECT_ID`, and `LIZARD_LIVE_TESTS=1`, then run `npm exec -- vitest run test/live/sandboxes.test.ts`. The test uses stdio MCP to create a sandbox, run shell and file tools, check timeout cleanup, and delete it. It uses billed resources; it does not deploy the MCP server.
 
 `test/manual/mcp-inspector.md` covers end-to-end checks against a stub platform and a live one.
 

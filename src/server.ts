@@ -12,6 +12,7 @@ import { registerGitTools } from "./tools/git.js";
 import { registerSshTools } from "./tools/ssh.js";
 import { registerConfigTools } from "./tools/config.js";
 import { registerTemplateTools } from "./tools/templates.js";
+import { registerSandboxTools } from "./tools/sandboxes.js";
 
 export interface ToolContext {
   api: ApiClient;
@@ -25,6 +26,19 @@ const INSTRUCTIONS = `
 Lizard is a PaaS: deploy GitHub repos as containerized apps, provision managed
 Postgres/Redis/S3 addons, and manage them (logs, metrics, secrets, domains, scaling,
 sandbox volumes, shell exec) — scoped to the authenticated user's own workspaces and projects.
+
+## Sandboxes
+
+Lizard Sandboxes run code in ephemeral cloud instances, separate from app services.
+Use sandbox_create with an explicit project and finite lifetime, then sandbox_exec,
+sandbox_read_file, and sandbox_write_file with its returned ID. Clean up with
+sandbox_delete when the task ends. These tools do not deploy an app.
+Creation uses billed resources. Create, execute, write, and delete require confirm:true
+after the user approves the action. For sandbox_exec, approval includes destruction of
+the whole sandbox if cancellation, timeout, or a failed request requires cleanup.
+Never use it on a sandbox whose files the user needs to keep. A failed request can have
+side effects; inspect the sandbox before retrying. Keys stay in the MCP server and each
+request uses only the current caller's access token.
 
 ## Mental model
 
@@ -144,6 +158,7 @@ export function getServer(accessToken: string): McpServer {
   registerSshTools(server, ctx);
   registerConfigTools(server, ctx);
   registerTemplateTools(server, ctx);
+  registerSandboxTools(server, ctx);
 
   return server;
 }

@@ -32,7 +32,7 @@ workspace -> project -> service (app or addon)
 - Cross-resource refs — `${{<name>.<KEY>}}` resolves at deploy time against the
   target's merged env. A ref to a missing target or key resolves to an empty string
   rather than failing the deploy (only circular refs throw). After wiring one, verify
-  the consumer actually got a value — `logs_tail` or `ssh_exec -- env`. Stored form is
+  the consumer actually got a value — `logs_tail`, or a page of the app that shows it. Stored form is
   ID-based, so renaming an addon later doesn't break existing refs.
 
 Most tools take a `project` (name/slug/ID) and `service` (name/ID) param, resolved by
@@ -187,7 +187,7 @@ secret, treat it as one.
 
 Check `secrets_list` before `secrets_set` / `secrets_delete` to avoid creating a
 duplicate key or silently shadowing one at a different scope. After wiring a ref,
-verify the consumer actually received a value — `logs_tail` or `ssh_exec -- env`.
+verify the consumer actually received a value — `logs_tail`, or a page of the app that shows it.
 
 ## Managed addons
 
@@ -276,8 +276,11 @@ the user's approval: sandboxes are billed.
   manage them; snapshots are billed for storage.
 - `sandbox_fork` starts live copies (memory and processes included). Near a limit only
   some copies may start; report the ones that failed.
-- `sandbox_expose_port` gives a port a public HTTPS URL; anyone with it can reach the
-  port. `sandbox_unexpose_port` removes it.
+- `sandbox_expose_port` gives a port an HTTPS URL (the server must listen on 0.0.0.0).
+  The URL carries the port's access token: a browser opens it once and keeps a cookie;
+  other clients send `accessToken` as the `X-Lizard-Access-Token` header. Anyone with
+  the URL can reach the port, so give it only to the user. `sandbox_unexpose_port`
+  removes it.
 - A failed, cancelled or timed-out `sandbox_exec` destroys the sandbox, so keep files the
   user needs on a volume or read them back first.
 
@@ -287,7 +290,9 @@ the user's approval: sandboxes are billed.
 `sandbox_create`'s `volume` (same region); its files outlive the sandbox. With `service`
 it attaches a volume to an app at `mountPath` (default `/data`) and restarts the app.
 `volume_resize` only grows a volume (older volumes can shrink if 10% stays free).
-`volume_delete` needs `confirm: true` and refuses while a sandbox has it attached.
+`volume_delete` needs `confirm: true` and refuses while a sandbox has it attached; with
+`service` it detaches and deletes an app's volume. Delete an app's volume before
+`project_delete`: a project in trash keeps its app volumes for 3 days.
 
 ## Workspace limits
 
@@ -345,7 +350,7 @@ git_checkout / git_status / git_connect                       switch branch / co
 repo_* / pr_* / ci_run_*                                      Lizard Git repositories, pull requests, CI runs
 sandbox_create / _exec / _read_file / _write_file / _delete   run code in a sandbox
 sandbox_pause / _resume / _snapshot / _fork / _expose_port    keep, copy and share a sandbox
-ssh_exec                                                      one-off shell command inside the service's container
+ssh_exec                                                      one-off shell command in a service's container (turned off on Lizard for now: 403)
 service_delete                                                permanent, requires confirm:true
 config_apply                                                  bulk config-as-code write; can silently overwrite fields verbatim — prefer the narrower tools above for single-field changes
 ```

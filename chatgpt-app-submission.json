@@ -904,7 +904,7 @@
       },
       "justifications": {
         "read_only_justification": "Publishes a sandbox port.",
-        "open_world_justification": "The port gets a public HTTPS URL anyone with the link can reach.",
+        "open_world_justification": "The port gets an HTTPS URL that carries its access token; anyone with that link can reach the port.",
         "destructive_justification": "Deletes nothing; sandbox_unexpose_port removes the URL."
       }
     },

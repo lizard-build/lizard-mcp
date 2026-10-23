@@ -40,7 +40,7 @@ sandbox_delete when the task ends. These tools do not deploy an app.
 sandbox_pause keeps memory, processes and files and stops billing for compute;
 sandbox_resume continues where it stopped. sandbox_snapshot saves a running sandbox to
 start new ones from (sandbox_create with snapshotId); sandbox_fork starts live copies.
-sandbox_expose_port gives a port a public HTTPS URL. A persistent volume (volume_create,
+sandbox_expose_port gives a port an HTTPS URL that carries its access token. A persistent volume (volume_create,
 then sandbox_create with volume) keeps files after the sandbox is gone.
 Creation uses billed resources. Create, execute, write, and delete require confirm:true
 after the user approves the action. For sandbox_exec, approval includes destruction of
@@ -103,7 +103,7 @@ with secrets_set), resolved at deploy time. Use secrets_refs to see exactly whic
 addon/key combinations are available in a project before wiring a reference. A ref to a
 missing addon or key silently resolves to an empty string rather than failing the
 deploy — after wiring one, it's worth confirming the consumer actually received a
-value (e.g. via logs_tail or ssh_exec) rather than assuming success.
+value (e.g. via logs_tail, or a page of the app that shows it) rather than assuming success.
 
 ## What triggers a rebuild vs. just a restart
 
@@ -153,7 +153,8 @@ domain_delete, volume_delete, sandbox_delete, sandbox_snapshot_delete, repo_dele
 in the call itself since there's no interactive prompt in MCP; still get the user's
 explicit go-ahead in conversation before setting it. ssh_exec runs arbitrary shell
 commands inside the service's container — only use it for commands the user would
-recognize and approve.
+recognize and approve. Shell access to services is turned off on Lizard for now (the
+platform answers 403); to run commands, use a sandbox instead.
 
 ## Composition
 

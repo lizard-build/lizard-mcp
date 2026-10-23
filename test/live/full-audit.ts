@@ -272,9 +272,15 @@ async function services() {
   await step("secrets_delete", { project: S.project, service: svc, keys: ["NOPE_NOT_SET"], confirm: true }, "refuses a key that does not exist", { error: /not found/ });
   await waitFor("service_show", { project: S.project, service: svc }, "running again after the secret restart", (r) => r.sc?.status === "running", 300_000, 5000);
   await sleep(10000);
-  await step("ssh_exec", { project: S.project, service: svc, cmd: 'echo "audit=$AUDIT"; test -n "$REDIS_URL" && echo has-redis', confirm: true }, "runs a command in the container; secrets arrived", {
-    check: (r) => (r.sc?.stdout?.includes("audit=yes") && r.sc?.stdout?.includes("has-redis") ? undefined : `stdout: ${r.sc?.stdout} stderr: ${r.sc?.stderr}`),
-  });
+  if (S.domain && svc === "web") {
+    let body = "";
+    for (let i = 0; i < 12 && !body.includes('"audit":"yes"'); i++) {
+      body = await fetch(`https://${S.domain}/`).then((x) => x.text()).catch(() => "");
+      if (!body.includes('"audit":"yes"')) await sleep(5000);
+    }
+    note("the app sees the secret and the Redis reference", body.includes('"audit":"yes"') && body.includes('"redis":true'), body.slice(0, 160));
+  }
+  await step("ssh_exec", { project: S.project, service: svc, cmd: "echo ok", confirm: true }, "says shell access is off and points to sandboxes", { error: /turned off on Lizard/ });
   await step("ssh_exec", { project: S.project, service: svc, cmd: "ls" }, "refuses without confirm", { error: true });
 
   // Config, deploy, scale
@@ -331,7 +337,8 @@ async function services() {
   }
 
   // Service volume
-  await step("volume_create", { project: S.project, name: "files", service: svc, sizeGb: 1 }, "attaches a 1 GB volume to the app", {});
+  const appVol = await step("volume_create", { project: S.project, name: "files", service: svc, sizeGb: 1 }, "attaches a 1 GB volume to the app", {});
+  if (!appVol.isError) S.appVolumeService = svc;
   await step("volume_list", { project: S.project, service: svc }, "lists the app's volume", { check: (r) => (r.text.includes("files") ? undefined : "volume missing") });
 }
 
@@ -364,10 +371,12 @@ async function volumesAndSandboxes() {
   if (exposed.sc?.url) {
     let status = 0;
     for (let i = 0; i < 10 && status !== 200; i++) {
-      status = await fetch(exposed.sc.url).then((x) => x.status).catch(() => 0);
+      status = await fetch(`https://${exposed.sc.hostname}/`, { headers: { "X-Lizard-Access-Token": exposed.sc.accessToken ?? "" } }).then((x) => x.status).catch(() => 0);
       if (status !== 200) await sleep(2000);
     }
-    note(`${exposed.sc.url} answers 200`, status === 200, `status ${status}`);
+    note(`the port answers 200 with its access token`, status === 200, `status ${status}`);
+    const without = await fetch(`https://${exposed.sc.hostname}/`, { redirect: "manual" }).then((x) => x.status).catch(() => 0);
+    note("the port refuses a request without the token", without === 401 || without === 403, `status ${without}`);
   }
   await step("sandbox_unexpose_port", { sandboxId: S.sb, port: 8000 }, "removes the URL", {});
   await step("sandbox_pause", { sandboxId: S.sb }, "pauses (memory kept)", { check: (r) => (r.sc?.status === "paused" ? undefined : JSON.stringify(r.sc)) });
@@ -465,7 +474,7 @@ async function bulk() {
 async function negative() {
   group = "negative";
   await step("service_delete", { project: S.project ?? "x", service: "web" }, "refuses without confirm", { error: true });
-  await step("project_list", { workspaceId: "no-such-workspace" }, "an unknown workspace is an error or empty", { check: (r) => (r.isError || (r.sc?.items ?? []).length === 0 ? undefined : "returned projects") });
+  await step("project_list", { workspaceId: "no-such-workspace" }, "an unknown workspace is refused", { error: /Not a member|not found/i });
   await step("service_list", { project: `${NAME}-nope` }, "an unknown project names the ones that exist", { error: /not found/ });
   await step("sandbox_show", { sandboxId: "../etc" }, "rejects a path-like sandbox id", { error: true });
   await step("repo_show", { repo: "../x" }, "rejects a path-like repository", { error: true });
@@ -474,6 +483,9 @@ async function negative() {
 
 async function cleanup() {
   group = "cleanup";
+  if (S.project && S.appVolumeService) {
+    await step("volume_delete", { project: S.project, service: S.appVolumeService, volume: "files", confirm: true }, "deletes the app's volume (else the trashed project keeps it 3 days)", {});
+  }
   if (S.gh) await step("service_delete", { project: S.project, service: "gh", confirm: true }, "deletes the GitHub service", {});
   if (S.repo) await step("repo_delete", { repo: S.repo, confirm: true }, "deletes the Lizard Git repo", {});
   if (S.project) {

@@ -139,17 +139,30 @@ export function registerVolumeTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Delete volume",
       description:
-        "Permanently delete a sandbox volume and every file on it. A volume attached to a sandbox can't be deleted: delete the sandbox first. Get the user's approval before calling; this cannot be undone.",
+        "Permanently delete a volume and every file on it. Without service: a sandbox volume; one attached to a sandbox can't be deleted, so delete the sandbox first. " +
+        "With service: that app's volume; it is detached first and the app restarts without it. Delete an app's volume before deleting its project: a project in trash keeps it for 3 days. Get the user's approval before calling; this cannot be undone.",
       inputSchema: {
         project: z.string().min(1).describe("Project name, slug, or ID"),
         volume: z.string().min(1).describe("Volume name or ID (from volume_list)"),
+        service: z.string().min(1).optional().describe("The app the volume is attached to, to delete an app's volume"),
         confirm: z.literal(true).describe("Set only after the user approves deleting this volume and its files"),
       },
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
-    handle(async ({ project, volume }) => {
+    handle(async ({ project, volume, service }) => {
       const proj = await resolveProject(ctx.api, project);
       const scope = { workspaceId: proj.workspaceId };
+      if (service) {
+        // App volumes: detach (DELETE /api/apps/:id/volumes/:volumeId keeps the data), then
+        // delete for good through the project's k8s-volumes route.
+        const app = await appOf(ctx, proj.id, proj.workspaceId, service);
+        const attached = await ctx.api.get<VolumeRecord[]>(`/api/apps/${app.id}/volumes`);
+        const target = attached.find((v) => v.id === volume) ?? attached.find((v) => v.name === volume);
+        if (!target) throw new Error(`${app.name} has no volume "${volume}". Its volumes: ${attached.map((v) => v.name).join(", ") || "none"}.`);
+        await ctx.api.delete(`/api/apps/${app.id}/volumes/${encodeURIComponent(target.id)}`).catch(withCode);
+        await ctx.api.delete(withScope(`/api/projects/${proj.id}/k8s-volumes/${encodeURIComponent(target.id)}`, scope)).catch(withCode);
+        return { id: target.id, name: target.name, service: app.name, status: "deleted" };
+      }
       const volumes = await ctx.api.get<VolumeRecord[]>(withScope(buildVolumeListPath(proj.id), scope));
       const target = volumes.find((v) => v.id === volume) ?? volumes.find((v) => v.name === volume);
       if (!target) throw new Error(`Volume "${volume}" not found in project. Available: ${volumes.map((v) => v.name).join(", ") || "none"}.`);

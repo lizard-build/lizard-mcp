@@ -312,14 +312,14 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_expose_port", {
     title: "Expose sandbox port",
-    description: "Give a port inside a running sandbox a public HTTPS URL, e.g. to show the user a web app the sandbox runs. Anyone with the URL can reach that port. Remove it with sandbox_unexpose_port.",
+    description: "Give a port inside a running sandbox an HTTPS URL, e.g. to show the user a web app the sandbox runs (it must listen on 0.0.0.0). The port stays private: the returned url carries an access token, so a browser opens it once and then keeps a cookie; other clients send accessToken in the X-Lizard-Access-Token header. Anyone with the url or token can reach the port, so share it only with the user. Remove it with sandbox_unexpose_port.",
     inputSchema: { sandboxId: id, port: z.number().int().min(1).max(65535) },
     annotations: { ...change, idempotentHint: true, openWorldHint: true },
   }, handle(async ({ sandboxId, port }) => ctx.api.post(`${route(sandboxId)}/expose/${port}`)));
 
   server.registerTool("sandbox_unexpose_port", {
     title: "Remove sandbox port URL",
-    description: "Remove the public HTTPS URL of a sandbox port. The process inside keeps running.",
+    description: "Remove the HTTPS URL of a sandbox port; its access token stops working. The process inside keeps running.",
     inputSchema: { sandboxId: id, port: z.number().int().min(1).max(65535) },
     annotations: { ...change, idempotentHint: true },
   }, handle(async ({ sandboxId, port }) => {

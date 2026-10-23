@@ -345,11 +345,15 @@ describe('real MCP transports against a local REST fixture', () => {
     expect(texts(shrink)).toContain('volume_shrink_unsupported');
     expect((await invoke('volume_delete', { project: 'demo', volume: 'busy', confirm: true })).isError).toBe(true);
     await invoke('volume_delete', { project: 'demo', volume: 'v1', confirm: true });
+    reply = (call) => call.url === '/api/apps/a1/volumes' ? { body: [{ id: 'kv1', name: 'files', sizeGb: 5 }] } : { body: { ok: true } };
+    await invoke('volume_delete', { project: 'demo', service: 'web', volume: 'files', confirm: true });
     expect(writes().map((w) => [w.method, w.url, w.body])).toEqual([
       ['POST', '/api/projects/p1/volumes?workspaceId=w1', { name: 'data', sizeGb: 5, region: 'eu' }],
       ['POST', '/api/apps/a1/volumes', { name: 'files', sizeGb: 5, mountPath: '/data' }],
       ['PATCH', '/api/projects/p1/volumes/data?workspaceId=w1', { sizeGb: 1 }],
       ['DELETE', '/api/projects/p1/volumes/data?workspaceId=w1', undefined],
+      ['DELETE', '/api/apps/a1/volumes/kv1', undefined],
+      ['DELETE', '/api/projects/p1/k8s-volumes/kv1?workspaceId=w1', undefined],
     ]);
     expect((await client.listTools()).tools.find((t) => t.name === 'volume_resize')?.description).toContain('cannot shrink');
   });

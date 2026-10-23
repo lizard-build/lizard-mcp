@@ -26,6 +26,33 @@ function readJwtExpirySeconds(token: string): number | null {
 }
 
 /**
+ * GET /api/auth/me, tried up to three times when the platform is busy or unreachable
+ * (network error, 429, 5xx). Without the retry a single blip there failed the whole MCP
+ * request with a bare 500 "server_error" (seen in a live audit run); 401/403 are answers,
+ * never retried. Each failure is logged, since the SDK's middleware hides the cause.
+ */
+async function fetchMe(token: string): Promise<Response> {
+  let last: Response | Error = new Error("not tried");
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(`${PLATFORM_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (res.ok || (res.status !== 429 && res.status < 500)) return res;
+      last = res;
+      console.error(`lizard-mcp: /api/auth/me answered ${res.status} (attempt ${attempt} of 3)`);
+    } catch (err) {
+      last = err as Error;
+      console.error(`lizard-mcp: /api/auth/me failed: ${(err as Error).message} (attempt ${attempt} of 3)`);
+    }
+    if (attempt < 3) await new Promise((r) => setTimeout(r, 250 * 2 ** attempt));
+  }
+  if (last instanceof Response) return last;
+  throw last;
+}
+
+/**
  * Verifies an access token by asking dragonlabs-platform whether it's valid —
  * never verifies the JWT's signature itself (see readJwtExpirySeconds for the
  * one thing it does read). This keeps lizard-mcp a dumb pass-through with
@@ -36,9 +63,7 @@ function readJwtExpirySeconds(token: string): number | null {
  */
 export const tokenVerifier: OAuthTokenVerifier = {
   async verifyAccessToken(token: string): Promise<AuthInfo> {
-    const res = await fetch(`${PLATFORM_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetchMe(token);
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         throw new InvalidTokenError("The access token is invalid or expired. Sign in again.");

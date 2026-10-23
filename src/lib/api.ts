@@ -116,6 +116,30 @@ export function apiErrorFrom(status: number, statusText: string, body: unknown):
   return new APIError(status, msg, code, body);
 }
 
+/**
+ * fetch() with the cause of a network failure in the message: undici throws a bare
+ * "fetch failed" and keeps ECONNRESET, ENOTFOUND or a timeout on err.cause (lizard-cli
+ * unwraps it the same way). A GET is tried once more, since reading twice is harmless;
+ * other methods are not, as the first try may have reached the platform.
+ */
+export async function fetchWithCause(url: string, init: RequestInit): Promise<Response> {
+  const method = (init.method ?? "GET").toUpperCase();
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      const cause = (err as { cause?: { code?: string; message?: string } }).cause;
+      const detail = cause?.code || cause?.message;
+      if (method === "GET" && attempt === 1 && (err as Error).name !== "AbortError" && (err as Error).name !== "TimeoutError") {
+        await new Promise((r) => setTimeout(r, 500));
+        continue;
+      }
+      const message = (err as Error).message || String(err);
+      throw new Error(detail && !message.includes(detail) ? `${message} (${detail})` : message, { cause: err });
+    }
+  }
+}
+
 export function isNotFound(err: unknown): boolean {
   return err instanceof APIError && err.status === 404;
 }
@@ -143,7 +167,7 @@ export function createApiClient(accessToken: string) {
     };
     if (body !== undefined) headers["Content-Type"] = "application/json";
 
-    const res = await fetch(baseURL + path, {
+    const res = await fetchWithCause(baseURL + path, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,

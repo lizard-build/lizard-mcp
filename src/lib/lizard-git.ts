@@ -1,4 +1,4 @@
-import { apiErrorFrom, APIError, NO_TOKEN_MESSAGE } from "./api.js";
+import { apiErrorFrom, APIError, fetchWithCause, NO_TOKEN_MESSAGE } from "./api.js";
 
 /**
  * Lizard Git (lizard.build/git) with the caller's own token, the way lizard-cli's
@@ -48,7 +48,7 @@ export function qs(path: string, values: Record<string, string | number | boolea
 export function createGitClient(accessToken: string) {
   async function send(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<Response> {
     if (!accessToken) throw new APIError(401, NO_TOKEN_MESSAGE);
-    const res = await fetch(gitURL() + path, {
+    const res = await fetchWithCause(gitURL() + path, {
       method,
       headers: {
         "User-Agent": "lizard-mcp/0.1.0",

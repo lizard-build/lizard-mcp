@@ -80,3 +80,17 @@ describe("API errors carry the platform's sentence and the page to open", () => 
     expect(billingPageUrl()).toMatch(/^https:\/\/.+\/profile\/account-billing$/);
   });
 });
+
+describe('fetchWithCause', () => {
+  it('names the network cause and retries a GET once', async () => {
+    const { fetchWithCause } = await import('../../src/lib/api.js');
+    const failure = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } });
+    const spy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(failure);
+    await expect(fetchWithCause('https://x/a', { method: 'GET' })).rejects.toThrow('fetch failed (ECONNRESET)');
+    expect(spy).toHaveBeenCalledTimes(2);
+    spy.mockClear();
+    await expect(fetchWithCause('https://x/a', { method: 'DELETE' })).rejects.toThrow('ECONNRESET');
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+});

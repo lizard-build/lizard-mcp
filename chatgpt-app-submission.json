@@ -4,71 +4,35 @@
   "app_info": {
     "display_name": "Lizard",
     "subtitle": "Deploy and manage cloud apps",
-    "description": "Lizard is a cloud platform for deploying and managing containerized apps and managed databases. Ask it to deploy a GitHub repo, provision a Postgres, Redis, or S3 addon, check logs and metrics, manage secrets, scale services, or attach a custom domain — all scoped to your own Lizard workspaces and projects.",
+    "description": "Lizard is a cloud platform for apps, managed databases, Lizard Sandboxes and Lizard Git. Ask it to deploy a GitHub or Lizard Git repo, provision a Postgres, Redis, or S3 addon, check logs and metrics, manage secrets, scale services, attach a custom domain, run code in a sandbox, or open a pull request — all scoped to your own Lizard workspaces and projects.",
     "category": "developer tools"
   },
   "tools": {
-    "service_sleep_status": {
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Reads whether the service sleeps when idle and its sleep counters; no writes.",
-        "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Pure read."
-      }
-    },
-    "service_sleep_set": {
+    "workspace_create": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Turns sleeping when idle on or off for the service.",
+        "read_only_justification": "Creates a new workspace.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted: a sleeping service keeps its memory, URL and data and wakes on the next request; turning it off makes it always on again."
+        "destructive_justification": "Creates only; nothing existing changes."
       }
     },
-    "service_pause": {
+    "project_delete": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
-        "read_only_justification": "Changes whether the service run: scales them to zero or back up.",
+        "read_only_justification": "Deletes a project.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the service keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
-      }
-    },
-    "service_resume": {
-      "annotations": {
-        "readOnlyHint": false,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Changes whether the service run: scales them to zero or back up.",
-        "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the service keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+        "destructive_justification": "Moves services and databases to trash and deletes the project's sandboxes, volumes and snapshots at once; confirm:true is required."
       }
     },
     "project_pause": {
-      "annotations": {
-        "readOnlyHint": false,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Changes whether the project's services run: scales them to zero or back up.",
-        "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the project's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
-      }
-    },
-    "project_resume": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
@@ -92,6 +56,18 @@
         "destructive_justification": "Nothing is deleted or overwritten: the workspace's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
       }
     },
+    "project_resume": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes whether the project's services run: scales them to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the project's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
     "workspace_resume": {
       "annotations": {
         "readOnlyHint": false,
@@ -102,6 +78,66 @@
         "read_only_justification": "Changes whether the workspace's services run: scales them to zero or back up.",
         "open_world_justification": "Lizard's own API only.",
         "destructive_justification": "Nothing is deleted or overwritten: the workspace's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
+    "workspace_delete": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Deletes a workspace.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Deletes the workspace; the platform refuses unless it is empty, and confirm:true is required."
+      }
+    },
+    "workspace_limits_get": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads the workspace's limits and current usage; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "workspace_limits_set": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes the workspace's caps on sandboxes, CPU, memory and disk.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted: running services keep running and data stays; a cap only stops new work past it."
+      }
+    },
+    "workspace_resale_pricing_get": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads the price multipliers scoped keys see; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "workspace_resale_pricing_set": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes the prices the workspace's scoped keys are shown.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted and the owner's bill is unchanged; it can be turned off again."
       }
     },
     "whoami": {
@@ -236,6 +272,54 @@
         "destructive_justification": "Permanently deletes the service and cannot be undone; the tool requires an explicit confirm:true argument for exactly this reason."
       }
     },
+    "service_pause": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes whether the service runs: scales it to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the service keeps its URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
+    "service_resume": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes whether the service runs: scales it to zero or back up.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted or overwritten: the service keeps its URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+      }
+    },
+    "service_sleep_status": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads whether the service sleeps when idle and its sleep counters; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "service_sleep_set": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Turns sleeping when idle on or off for the service.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted: a sleeping service keeps its memory, URL and data and wakes on the next request; turning it off makes it always on again."
+      }
+    },
     "service_scale": {
       "annotations": {
         "readOnlyHint": false,
@@ -344,18 +428,6 @@
         "destructive_justification": "Pure read."
       }
     },
-    "billing_summary": {
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Reads a cost/usage summary, no writes.",
-        "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Pure read."
-      }
-    },
     "billing_status": {
       "annotations": {
         "readOnlyHint": true,
@@ -364,6 +436,18 @@
       },
       "justifications": {
         "read_only_justification": "Reads the account's plan, trial and credits used this month, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "billing_summary": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads a cost/usage summary, no writes.",
         "open_world_justification": "Lizard's own API only.",
         "destructive_justification": "Pure read."
       }
@@ -452,6 +536,90 @@
         "destructive_justification": "Permanently removes the domain and cannot be undone; the tool requires an explicit confirm:true argument for exactly this reason."
       }
     },
+    "domain_owned_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists the user's bought domains; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "domain_dns_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads a bought domain's DNS records; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "domain_dns_update": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Changes a bought domain's DNS records.",
+        "open_world_justification": "DNS records are published to the public DNS and can point anywhere.",
+        "destructive_justification": "Can replace or remove records; remove needs confirm:true."
+      }
+    },
+    "volume_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists volumes; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "volume_create": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates a persistent volume.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Creates only; attaching one to an app restarts the app but deletes nothing."
+      }
+    },
+    "volume_resize": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes a volume's size.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Grows in place with no data copied; the platform refuses a shrink that would not fit the data."
+      }
+    },
+    "volume_delete": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Deletes a volume and its files.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Deletes data permanently; confirm:true is required and an attached volume is refused."
+      }
+    },
     "git_checkout": {
       "annotations": {
         "readOnlyHint": false,
@@ -510,6 +678,42 @@
         "read_only_justification": "Applies a bulk, config-as-code style update to services/addons/secrets in one request.",
         "open_world_justification": "Lizard's own API only.",
         "destructive_justification": "The config body is passed through verbatim and can overwrite or remove existing fields in one call, per its own description; marked destructive to reflect that a single call can silently replace or drop existing configuration, unlike the narrower single-field tools."
+      }
+    },
+    "template_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists templates; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "template_show": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads one template; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "template_deploy": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates a new project with the template's services.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Creates only; nothing existing changes."
       }
     },
     "sandbox_list": {
@@ -584,6 +788,18 @@
         "destructive_justification": "May overwrite a file; requires confirm:true."
       }
     },
+    "sandbox_list_files": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists one directory in a sandbox; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
     "sandbox_delete": {
       "annotations": {
         "readOnlyHint": false,
@@ -594,6 +810,282 @@
         "read_only_justification": "Deletes the chosen sandbox.",
         "open_world_justification": "Calls the Lizard API only.",
         "destructive_justification": "Permanently removes its files and processes; requires confirm:true."
+      }
+    },
+    "sandbox_set_timeout": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes when the sandbox expires.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted now; a shorter lifetime makes it expire sooner."
+      }
+    },
+    "sandbox_pause": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Pauses the sandbox.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Nothing is deleted: memory, processes and files are saved and sandbox_resume restores them."
+      }
+    },
+    "sandbox_resume": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Resumes a paused sandbox.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Restores the saved state; deletes nothing."
+      }
+    },
+    "sandbox_snapshot": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Saves a snapshot of the sandbox.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Creates a snapshot; the sandbox keeps running unchanged."
+      }
+    },
+    "sandbox_snapshot_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists snapshots; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "sandbox_snapshot_delete": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Deletes a snapshot.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Deletes the saved snapshot permanently; confirm:true is required."
+      }
+    },
+    "sandbox_fork": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Starts copies of a sandbox.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Creates new sandboxes; the source keeps running. confirm:true is required because copies are billed."
+      }
+    },
+    "sandbox_expose_port": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Publishes a sandbox port.",
+        "open_world_justification": "The port gets a public HTTPS URL anyone with the link can reach.",
+        "destructive_justification": "Deletes nothing; sandbox_unexpose_port removes the URL."
+      }
+    },
+    "sandbox_unexpose_port": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Removes a sandbox port's public URL.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Removes only the URL; the process keeps running."
+      }
+    },
+    "repo_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists Lizard Git repositories; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "repo_create": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates a Lizard Git repository.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Creates only; nothing existing changes."
+      }
+    },
+    "repo_show": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads a repository's details; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "repo_delete": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Deletes a Lizard Git repository.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Deletes the repository and its history permanently; confirm:true is required."
+      }
+    },
+    "repo_files": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists repository files; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "repo_read_file": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads a repository file; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "repo_commit": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Commits files to a branch.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Adds a commit; earlier commits stay in history."
+      }
+    },
+    "repo_commits": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists commits; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "pr_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists pull requests; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "pr_create": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Opens a pull request.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Creates only; branches are not changed."
+      }
+    },
+    "pr_show": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads a pull request; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "pr_merge": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Merges a pull request into its base branch.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Adds commits to the base branch; history stays, so a revert can undo it."
+      }
+    },
+    "ci_run_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists CI runs; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "ci_run_show": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads a CI run and its logs; no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
       }
     }
   },
@@ -639,6 +1131,20 @@
       "file_attachment_urls": null,
       "tools_triggered": "project_list, sandbox_create, sandbox_write_file, sandbox_exec, sandbox_delete",
       "expected_output": "Uses the chosen project and a finite lifetime, returns the command output, and deletes the sandbox. Keeps credentials out of the sandbox. Does not deploy an app."
+    },
+    {
+      "description": "Run a script in a sandbox and clean up",
+      "user_prompt": "On Lizard, start a sandbox in my demo project, run python3 -c 'print(2**64)' and delete the sandbox afterwards",
+      "file_attachment_urls": null,
+      "tools_triggered": "project_list, sandbox_create, sandbox_exec, sandbox_delete",
+      "expected_output": "Asks for approval before creating and running, reports 18446744073709551616, then deletes the sandbox."
+    },
+    {
+      "description": "Read a failing CI run on Lizard Git",
+      "user_prompt": "Why did the last CI run of me/app on Lizard Git fail?",
+      "file_attachment_urls": null,
+      "tools_triggered": "ci_run_list, ci_run_show",
+      "expected_output": "Finds the newest run, reads its job logs and quotes the failing step's error."
     }
   ],
   "negative_test_cases": [

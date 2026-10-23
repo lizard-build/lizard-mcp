@@ -1,0 +1,22 @@
+name: Lizard CLI drift
+
+# The Lizard CLI ships often. Once a day, check the newest one: a new command that
+# test/parity/cli-coverage.json does not map turns this red, so the MCP tools (or the
+# map's reasons) get updated instead of falling behind unnoticed.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm install -g @lizard-build/cli@latest
+      - run: npm run audit:cli -- --latest

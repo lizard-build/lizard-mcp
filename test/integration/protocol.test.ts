@@ -36,6 +36,8 @@ beforeAll(async () => {
       result = { body: { issuer: platformUrl, authorization_endpoint: `${platformUrl}/authorize`, token_endpoint: `${platformUrl}/token`, response_types_supported: ['code'] } };
     } else if (req.url === '/api/auth/me') {
       result = { status: authStatus, body: authStatus === 200 ? { id: 'u1', username: 'fixture' } : { error: 'Fixture auth failure' } };
+    } else if (req.url === '/git/api/session') {
+      result = { body: { login: 'fixture' } };
     } else {
       calls.push(call);
       if (call.url === '/api/projects' && call.method === 'GET') result = { body: [project] };
@@ -78,11 +80,11 @@ afterAll(async () => {
 beforeEach(() => { calls = []; authStatus = 200; reply = () => ({ body: { ok: true } }); });
 
 describe('real MCP transports against a local REST fixture', () => {
-  it('lists the same 56 tools over stdio and HTTP', async () => {
+  it('lists the same 90 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
     expect(stdio.tools.map((tool) => tool.name).sort()).toEqual(http.tools.map((tool) => tool.name).sort());
-    expect(stdio.tools).toHaveLength(56);
+    expect(stdio.tools).toHaveLength(90);
     for (const name of ['workspace_create', 'project_delete', 'template_list', 'template_show', 'template_deploy', 'billing_status', 'service_pause', 'service_resume', 'project_pause', 'project_resume', 'workspace_pause', 'workspace_resume', 'service_sleep_status', 'service_sleep_set']) {
       expect(stdio.tools.find((tool) => tool.name === name)?.description).toBeTruthy();
     }
@@ -276,11 +278,176 @@ describe('real MCP transports against a local REST fixture', () => {
       ['GET', '/api/billing/subscription?workspaceId=w+1'],
     ]);
   });
+  it('creates a sandbox from a template, size, volume or snapshot', async () => {
+    reply = () => ({ body: { id: 's1', status: 'running', size: 'medium' } });
+    const created = await invoke('sandbox_create', { project: 'demo', template: 'base', size: 'medium', region: 'eu', volume: 'data', lifetimeMs: 3600000, confirm: true });
+    expect(created.structuredContent).toMatchObject({ sandboxId: 's1', size: 'medium', workdir: '/workspace' });
+    await invoke('sandbox_create', { project: 'demo', snapshotId: 'snap1', volume: 'fcv-abc', confirm: true });
+    expect(writes().map((w) => w.body)).toEqual([
+      { template: 'base', projectId: 'p1', size: 'medium', timeoutMs: 3600000, region: 'eu', volumeName: 'data', metadata: { integration: 'lizard-mcp' } },
+      { snapshotId: 'snap1', projectId: 'p1', timeoutMs: 300000, volumeId: 'fcv-abc', metadata: { integration: 'lizard-mcp' } },
+    ]);
+    calls = [];
+    expect((await invoke('sandbox_create', { project: 'demo', snapshotId: 'snap1', size: 'large', confirm: true })).isError).toBe(true);
+    expect((await invoke('sandbox_create', { project: 'demo', lifetimeMs: 86400001, confirm: true })).isError).toBe(true);
+    expect(writes()).toEqual([]);
+  });
+  it('pauses and resumes a sandbox and waits for the state', async () => {
+    let state = 'running';
+    reply = (call) => {
+      if (call.method === 'POST' && call.url.endsWith('/pause')) { state = 'paused'; return { body: { id: 's1', status: 'pausing' } }; }
+      if (call.method === 'POST' && call.url.endsWith('/resume')) { state = 'running'; return { body: { id: 's1', status: 'resuming' } }; }
+      return { body: { id: 's1', status: state } };
+    };
+    expect((await invoke('sandbox_pause', { sandboxId: 's1' })).structuredContent).toMatchObject({ status: 'paused' });
+    expect((await invoke('sandbox_resume', { sandboxId: 's1' })).structuredContent).toMatchObject({ status: 'running' });
+    expect(writes().map((w) => `${w.method} ${w.url}`)).toEqual(['POST /api/sandboxes/s1/pause', 'POST /api/sandboxes/s1/resume']);
+  });
+  it('snapshots, lists, forks, exposes and extends sandboxes', async () => {
+    reply = (call) => {
+      if (call.url === '/api/sandboxes/s1/snapshot') return { body: { id: 'snap1', status: 'processing' } };
+      if (call.url === '/api/sandbox-snapshots/snap1') return { body: { id: 'snap1', status: 'ready' } };
+      if (call.url === '/api/sandboxes/s1/fork') return { body: [{ sandbox: { id: 's2' } }, { error: 'WORKSPACE_SANDBOX_LIMIT' }] };
+      if (call.url === '/api/sandboxes/s1/expose/3000' && call.method === 'POST') return { body: { hostname: 'h', url: 'https://h', port: 3000 } };
+      return { body: [] };
+    };
+    expect((await invoke('sandbox_snapshot', { sandboxId: 's1', name: 'base', scope: 'project' })).structuredContent).toMatchObject({ id: 'snap1', status: 'ready' });
+    await invoke('sandbox_snapshot_list', { project: 'demo' });
+    expect((await invoke('sandbox_fork', { sandboxId: 's1', count: 2 })).isError).toBe(true); // no confirm
+    expect((await invoke('sandbox_fork', { sandboxId: 's1', count: 2, confirm: true })).structuredContent).toMatchObject({ started: 1, failed: 1 });
+    expect((await invoke('sandbox_expose_port', { sandboxId: 's1', port: 3000 })).structuredContent).toMatchObject({ url: 'https://h' });
+    await invoke('sandbox_unexpose_port', { sandboxId: 's1', port: 3000 });
+    await invoke('sandbox_set_timeout', { sandboxId: 's1', lifetimeMs: 600000 });
+    await invoke('sandbox_list_files', { sandboxId: 's1', path: 'src' });
+    await invoke('sandbox_snapshot_delete', { snapshotId: 'snap1', confirm: true });
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      'POST /api/sandboxes/s1/snapshot', 'GET /api/sandbox-snapshots/snap1',
+      'GET /api/projects', 'GET /api/projects/p1/snapshots',
+      'POST /api/sandboxes/s1/fork',
+      'POST /api/sandboxes/s1/expose/3000', 'DELETE /api/sandboxes/s1/expose/3000',
+      'POST /api/sandboxes/s1/timeout',
+      'GET /api/sandboxes/s1/files/list?path=%2Fworkspace%2Fsrc',
+      'DELETE /api/sandbox-snapshots/snap1',
+    ]);
+    expect(writes().find((w) => w.url.endsWith('/fork'))?.body).toEqual({ count: 2 });
+    expect(writes().find((w) => w.url.endsWith('/timeout'))?.body).toEqual({ timeoutMs: 600000 });
+  });
+  it('creates, resizes and deletes volumes, and refuses to delete an attached one', async () => {
+    reply = (call) => {
+      if (call.url.startsWith('/api/projects/p1/volume-limits')) return { body: { minSizeGb: 1, maxSizeGb: 100, defaultSizeGb: 5 } };
+      if (call.method === 'GET' && call.url.startsWith('/api/projects/p1/volumes')) return { body: [{ id: 'v1', name: 'data', sizeGb: 5 }, { id: 'v2', name: 'busy', sizeGb: 5, attachedTo: 's9' }] };
+      if (call.method === 'PATCH') return { status: 400, body: { error: 'Volumes cannot shrink', code: 'volume_shrink_unsupported' } };
+      return { body: { ok: true } };
+    };
+    await invoke('volume_create', { project: 'demo', name: 'data', region: 'eu' });
+    await invoke('volume_create', { project: 'demo', name: 'files', service: 'web' });
+    const shrink = await invoke('volume_resize', { project: 'demo', volume: 'data', sizeGb: 1 });
+    expect(texts(shrink)).toContain('volume_shrink_unsupported');
+    expect((await invoke('volume_delete', { project: 'demo', volume: 'busy', confirm: true })).isError).toBe(true);
+    await invoke('volume_delete', { project: 'demo', volume: 'v1', confirm: true });
+    expect(writes().map((w) => [w.method, w.url, w.body])).toEqual([
+      ['POST', '/api/projects/p1/volumes?workspaceId=w1', { name: 'data', sizeGb: 5, region: 'eu' }],
+      ['POST', '/api/apps/a1/volumes', { name: 'files', sizeGb: 5, mountPath: '/data' }],
+      ['PATCH', '/api/projects/p1/volumes/data?workspaceId=w1', { sizeGb: 1 }],
+      ['DELETE', '/api/projects/p1/volumes/data?workspaceId=w1', undefined],
+    ]);
+    expect((await client.listTools()).tools.find((t) => t.name === 'volume_resize')?.description).toContain('cannot shrink');
+  });
+  it('reads and sets workspace limits and resale prices, and deletes only empty workspaces', async () => {
+    reply = (call) => call.url.endsWith('/resale-pricing') && call.method === 'GET'
+      ? { body: { enabled: true, multipliers: { cpu: 2, memory: 2, storage: 1, egress: 1, objectStorage: 1, sandbox: 3 } } }
+      : { body: { ok: true } };
+    await invoke('workspace_limits_get', { workspaceId: 'w1' });
+    await invoke('workspace_limits_set', { workspaceId: 'w1', maxRunningSandboxes: 5, maxCpuVcpus: null });
+    expect((await invoke('workspace_limits_set', { workspaceId: 'w1' })).isError).toBe(true);
+    await invoke('workspace_resale_pricing_get', { workspaceId: 'w1' });
+    await invoke('workspace_resale_pricing_set', { workspaceId: 'w1', sandbox: 5 });
+    await invoke('workspace_resale_pricing_set', { workspaceId: 'w1', off: true });
+    expect((await invoke('workspace_delete', { workspaceId: 'w1' })).isError).toBe(true);
+    await invoke('workspace_delete', { workspaceId: 'w1', confirm: true });
+    expect(writes().map((w) => [w.method, w.url, w.body])).toEqual([
+      ['PUT', '/api/workspaces/w1/limits', { maxRunningSandboxes: 5, maxCpuVcpus: null }],
+      ['PUT', '/api/workspaces/w1/resale-pricing', { cpu: 2, memory: 2, storage: 1, egress: 1, objectStorage: 1, sandbox: 5 }],
+      ['PUT', '/api/workspaces/w1/resale-pricing', {}],
+      ['DELETE', '/api/workspaces/w1?requireEmpty=true', undefined],
+    ]);
+  });
+  it('tells the agent what project_delete removes at once', async () => {
+    const tool = (await client.listTools()).tools.find((t) => t.name === 'project_delete');
+    expect(tool?.description).toContain('sandboxes, their volumes and snapshots are deleted at once');
+  });
+  it('sets DNS on a bought domain and refuses to replace records without force', async () => {
+    const order = { id: 'o1', domain: 'example.com', status: 'registered', appId: null, expiresAt: null };
+    reply = (call) => {
+      if (call.url === '/api/domains/orders') return { body: { orders: [order] } };
+      if (call.url === '/api/domains/orders/o1/dns' && call.method === 'GET') return { body: { version: 'v1', records: [{ name: 'api', type: 'A', value: '1.2.3.4', ttl: 1800 }, { name: '@', type: 'URL', value: 'http://www.example.com', ttl: 1800 }] } };
+      return { body: { ok: true, attached: ['api.example.com'] } };
+    };
+    const refused = await invoke('domain_attach', { project: 'demo', service: 'web', hostname: 'api.example.com' });
+    expect(refused.isError).toBe(true);
+    expect(texts(refused)).toContain('api A 1.2.3.4');
+    expect(writes()).toEqual([]);
+    await invoke('domain_attach', { project: 'demo', service: 'web', hostname: 'api.example.com', force: true });
+    await invoke('domain_dns_update', { domain: 'example.com', action: 'set', name: 'mail.example.com', type: 'MX', value: 'mx.example.net' });
+    expect((await invoke('domain_dns_update', { domain: 'example.com', action: 'remove', name: 'api' })).isError).toBe(true);
+    expect(writes().map((w) => [w.method, w.url, w.body])).toEqual([
+      ['POST', '/api/domains/orders/o1/connect', { appId: 'a1', hostname: 'api.example.com', force: true }],
+      ['PUT', '/api/domains/orders/o1/dns', { version: 'v1', records: [
+        { name: 'api', type: 'A', value: '1.2.3.4', ttl: 1800 }, { name: '@', type: 'URL', value: 'http://www.example.com', ttl: 1800 },
+        { name: 'mail', type: 'MX', value: 'mx.example.net', ttl: 1800, priority: 10 },
+      ] }],
+    ]);
+  });
+  it('explains that an API key cannot change bought-domain DNS', async () => {
+    reply = (call) => {
+      if (call.url === '/api/domains/orders') return { body: { orders: [{ id: 'o1', domain: 'example.com', status: 'registered' }] } };
+      if (call.method === 'GET') return { body: { version: 'v1', records: [] } };
+      return { status: 401, body: { error: 'Sign in required' } };
+    };
+    const result = await invoke('domain_dns_update', { domain: 'example.com', action: 'add', name: '@', type: 'TXT', value: 'hello' });
+    expect(result.isError).toBe(true);
+    expect(texts(result)).toContain('API key can read');
+  });
+  it('maps Lizard Git and GitHub repo forms for service_create', async () => {
+    reply = () => ({ body: { id: 'a2' } });
+    await invoke('service_create', { project: 'demo', name: 'site', region: 'eu', repoUrl: 'lizard:me/site' });
+    await invoke('service_create', { project: 'demo', name: 'api', region: 'eu', repoUrl: 'me/api' });
+    expect(writes().map((w) => w.body.repoUrl)).toEqual(['https://lizard.build/git/me/site', 'https://github.com/me/api']);
+  });
+  it('talks to Lizard Git with the caller token and never follows path tricks', async () => {
+    reply = (call) => {
+      if (call.url.startsWith('/git/api/repos?')) return { body: [{ owner: 'fixture', name: 'app' }] };
+      if (call.url === '/git/api/repos' && call.method === 'POST') return { body: { owner: 'fixture', name: 'app' } };
+      if (call.url === '/git/api/repos/fixture/app/actions/runs/1') return { body: { number: 1, status: 'failure', jobs: [{ id: 7, name: 'test' }] } };
+      if (call.url === '/git/api/repos/fixture/app/actions/jobs/7/log.txt') return { text: 'x'.repeat(70000) + 'boom' };
+      return { body: { ok: true } };
+    };
+    await invoke('repo_list');
+    const created = await invoke('repo_create', { name: 'app', readme: true });
+    expect(created.structuredContent).toMatchObject({ repo: 'fixture/app', url: expect.stringMatching(/\/git\/fixture\/app$/) });
+    await invoke('repo_commit', { repo: 'fixture/app', branch: 'main', message: 'Add', files: [{ path: 'a.txt', content: 'hi' }], idempotencyKey: 'k1' });
+    await invoke('pr_create', { repo: 'fixture/app', title: 'T', head: 'feature', draft: true });
+    await invoke('pr_merge', { repo: 'fixture/app', number: 2, method: 'squash', deleteBranch: true });
+    const run = await invoke('ci_run_show', { repo: 'fixture/app', number: 1, logs: true });
+    const log = (run.structuredContent as any).logs.test;
+    expect(log.truncated).toBe(true);
+    expect(log.text.endsWith('boom')).toBe(true);
+    expect((await invoke('repo_show', { repo: '../x' })).isError).toBe(true);
+    expect((await invoke('repo_read_file', { repo: 'fixture/app', path: '../../x' })).isError).not.toBe(true); // path goes in the query, not the URL path
+    expect(calls.filter((c) => c.url.startsWith('/git/')).every((c) => c.auth === 'Bearer liz_fixture')).toBe(true);
+    expect(writes().map((w) => [w.method, w.url, w.body])).toEqual([
+      ['POST', '/git/api/repos', { name: 'app', private: true, readme: true }],
+      ['POST', '/git/api/repos/fixture/app/commits', { branch: 'main', message: 'Add', files: [{ path: 'a.txt', content: 'hi' }] }],
+      ['POST', '/git/api/repos/fixture/app/issues', { title: 'T', head: 'feature', draft: true }],
+      ['POST', '/git/api/repos/fixture/app/pulls/2/merge', { method: 'squash', deleteBranch: true }],
+    ]);
+    expect(calls.find((c) => c.url.startsWith('/git/api/repos?'))?.url).toBe('/git/api/repos?member=fixture');
+  });
   it('allows discovery without a stdio token and explains auth when calling a tool', async () => {
     const anonymous = makeClient();
     try {
       await anonymous.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: { ...env(), LIZARD_TOKEN: '', LIZARD_API_KEY: '' }, stderr: 'pipe' }));
-      expect((await anonymous.listTools()).tools).toHaveLength(56);
+      expect((await anonymous.listTools()).tools).toHaveLength(90);
       expect(texts(await anonymous.callTool({ name: 'whoami', arguments: {} }))).toContain('No Lizard API key');
     } finally { await anonymous.close(); }
   });

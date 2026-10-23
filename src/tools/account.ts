@@ -21,7 +21,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
     "project_delete",
     {
       title: "Move project to trash",
-      description: "Delete a project when its owner explicitly asks. Stops its services and moves the project to trash for three days. Requires the user's confirmation; do not call this to delete only one service.",
+      description: "Delete a project when its owner explicitly asks. Its services and databases stop and stay in trash for 3 days; its sandboxes, their volumes and snapshots are deleted at once and cannot be recovered. Tell the user both parts before asking. Requires the user's confirmation; do not call this to delete only one service.",
       inputSchema: {
         project: z.string().min(1).describe("Project name, slug, or ID; use an ID if names are ambiguous"),
         confirm: z.literal(true).describe("Set only after the user approves deleting this project"),
@@ -63,6 +63,105 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
       handle(async ({ workspaceId }) => ctx.api.post(`/api/workspaces/${encodeURIComponent(workspaceId)}/${op}`)),
     );
   }
+
+  server.registerTool(
+    "workspace_delete",
+    {
+      title: "Delete workspace",
+      description: "Delete an empty workspace (owner only; not the personal one). The platform refuses while it still has live projects, sandboxes or volumes and says what is left. Requires the user's confirmation.",
+      inputSchema: {
+        workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)"),
+        confirm: z.literal(true).describe("Set only after the user approves deleting this workspace"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+    },
+    handle(async ({ workspaceId }) => {
+      await ctx.api.delete(withQuery(`/api/workspaces/${encodeURIComponent(workspaceId)}`, { requireEmpty: true }));
+      return { id: workspaceId, status: "deleted" };
+    }),
+  );
+
+  server.registerTool(
+    "workspace_limits_get",
+    {
+      title: "Read workspace limits",
+      description:
+        "Use this when the user asks what a workspace may run at once, or a call failed with WORKSPACE_SANDBOX_LIMIT or WORKSPACE_USAGE_LIMIT. " +
+        "Returns limits (maxRunningSandboxes, maxCpuVcpus, maxMemoryMb, maxDiskGb; null = no limit) and usage now (runningSandboxes, cpuVcpus, memoryMb, diskGb). " +
+        "CPU and memory are what the workspace's apps and databases use, measured every ~10 s; disk is what its databases and volumes hold.",
+      inputSchema: { workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)") },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    handle(async ({ workspaceId }) => ctx.api.get(`/api/workspaces/${encodeURIComponent(workspaceId)}/limits`)),
+  );
+
+  server.registerTool(
+    "workspace_limits_set",
+    {
+      title: "Set workspace limits",
+      description:
+        "Cap what a workspace may run at once (owner only, with a key that has no scopes). A field left out stays as it is; null removes that limit. " +
+        "Past maxRunningSandboxes a sandbox create, fork or resume fails with WORKSPACE_SANDBOX_LIMIT. While CPU, memory or disk use is at a cap, deploys, restarts, scale-ups, new databases and volume growth fail with WORKSPACE_USAGE_LIMIT; running services keep running and data stays.",
+      inputSchema: {
+        workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)"),
+        maxRunningSandboxes: z.number().int().min(0).nullable().optional(),
+        maxCpuVcpus: z.number().min(0).nullable().optional().describe("vCPU its apps and databases may be using"),
+        maxMemoryMb: z.number().int().min(0).nullable().optional().describe("MB its apps and databases may be using"),
+        maxDiskGb: z.number().min(0).nullable().optional().describe("GB its databases and volumes may hold"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    handle(async ({ workspaceId, ...limits }) => {
+      const body = Object.fromEntries(Object.entries(limits).filter(([, v]) => v !== undefined));
+      if (!Object.keys(body).length) throw new Error("Pass at least one limit; workspace_limits_get reads them.");
+      return ctx.api.put(`/api/workspaces/${encodeURIComponent(workspaceId)}/limits`, body);
+    }),
+  );
+
+  const resaleShape = {
+    cpu: z.number().min(1).max(100).optional(),
+    memory: z.number().min(1).max(100).optional(),
+    storage: z.number().min(1).max(100).optional().describe("Volumes"),
+    egress: z.number().min(1).max(100).optional(),
+    objectStorage: z.number().min(1).max(100).optional(),
+    sandbox: z.number().min(1).max(100).optional(),
+  };
+
+  server.registerTool(
+    "workspace_resale_pricing_get",
+    {
+      title: "Read resale prices",
+      description:
+        "Read the prices a workspace's scoped API keys are shown, as multiples of Lizard's (owner only, with a key that has no scopes). Returns enabled and multipliers per resource: cpu, memory, storage (volumes), egress, objectStorage, sandbox.",
+      inputSchema: { workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)") },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    handle(async ({ workspaceId }) => ctx.api.get(`/api/workspaces/${encodeURIComponent(workspaceId)}/resale-pricing`)),
+  );
+
+  server.registerTool(
+    "workspace_resale_pricing_set",
+    {
+      title: "Set resale prices",
+      description:
+        "For a reseller: set the prices that keys scoped to this workspace (or its projects) see, as multiples from 1 to 100 of Lizard's, per resource. " +
+        "Resources not passed keep their current multiplier; off: true turns resale prices off. Only what scoped keys are shown changes: the owner's dashboard, unscoped keys and the owner's bill keep Lizard's prices. Owner only, with a key that has no scopes.",
+      inputSchema: {
+        workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)"),
+        ...resaleShape,
+        off: z.boolean().optional().describe("Turn resale prices off"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    handle(async ({ workspaceId, off, ...given }) => {
+      const path = `/api/workspaces/${encodeURIComponent(workspaceId)}/resale-pricing`;
+      if (off) return ctx.api.put(path, {});
+      const changes = Object.fromEntries(Object.entries(given).filter(([, v]) => v !== undefined));
+      if (!Object.keys(changes).length) throw new Error("Pass at least one multiplier, or off: true.");
+      const current = await ctx.api.get<{ multipliers?: Record<string, number> }>(path);
+      return ctx.api.put(path, { ...(current.multipliers ?? {}), ...changes });
+    }),
+  );
 
   server.registerTool(
     "whoami",

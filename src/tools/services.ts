@@ -72,6 +72,18 @@ export const serviceScaleShape = {
     .describe("Storage in MB, addons only, grow-only"),
 };
 
+/**
+ * The repo URL the platform takes: a full https URL as is, lizard:owner/name for a Lizard Git
+ * repository, owner/name for GitHub. Same mapping as lizard-cli's `lizard add -r`.
+ */
+export function normalizeRepoUrl(repo: string): string {
+  const r = repo.trim();
+  if (/^https?:\/\//.test(r)) return r;
+  if (r.startsWith("lizard:")) return `https://lizard.build/git/${r.slice("lizard:".length)}`;
+  if (/^[^/\s]+\/[^/\s]+$/.test(r)) return `https://github.com/${r}`;
+  throw new Error(`repoUrl must be an https URL, owner/name (GitHub) or lizard:owner/name (Lizard Git), got "${repo}"`);
+}
+
 export function registerServiceTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "service_list",
@@ -111,12 +123,12 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Create service",
       description:
-        "Use this when the user wants to create a new empty Lizard service, or deploy a GitHub repository as a new service. Omit repoUrl for an empty service you configure later; provide repoUrl to deploy that repo immediately. Calling this again creates another service, even with the same name — it does not update an existing one. A *.onlizard.com domain is assigned automatically, but not until the build finishes and the service boots — this response's `domain` field will be null right after creation, that is expected, not an error. Do not invent, guess, or predict a hostname to fill that gap. Tell the user the deploy is in progress and the domain isn't assigned yet; poll service_show or deploy_events and report the real `domain` value once it's non-null.",
+        "Use this when the user wants to create a new empty Lizard service, or deploy a repository as a new service: GitHub, or Lizard Git (lizard:owner/name, from repo_list). Omit repoUrl for an empty service you configure later; provide repoUrl to deploy that repo immediately; later pushes or commits to its branch deploy again. Calling this again creates another service, even with the same name — it does not update an existing one. A *.onlizard.com domain is assigned automatically, but not until the build finishes and the service boots — this response's `domain` field will be null right after creation, that is expected, not an error. Do not invent, guess, or predict a hostname to fill that gap. Tell the user the deploy is in progress and the domain isn't assigned yet; poll service_show or deploy_events and report the real `domain` value once it's non-null.",
       inputSchema: {
         project: z.string().min(1),
         name: z.string().describe("Service name"),
         region: z.string().describe("Deployment region code — call region_list first if unsure of valid values, do not guess"),
-        repoUrl: z.string().optional().describe("GitHub repo URL — when provided, this becomes a deploy of that repo"),
+        repoUrl: z.string().optional().describe("https URL, owner/name (GitHub) or lizard:owner/name (Lizard Git) — when provided, this becomes a deploy of that repo"),
         containerPort: z.number().int().optional(),
         envVars: z.record(z.string(), z.string()).optional(),
         skipInitialDeploy: z.boolean().optional().describe("With repoUrl: attach the repo but skip the initial build"),
@@ -127,7 +139,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       const proj = await resolveProject(ctx.api, project);
       return ctx.api.post(
         withScope(`/api/projects/${proj.id}/apps`, { workspaceId: proj.workspaceId }),
-        { name, region, repoUrl, containerPort, envVars, skipInitialDeploy },
+        { name, region, repoUrl: repoUrl ? normalizeRepoUrl(repoUrl) : undefined, containerPort, envVars, skipInitialDeploy },
       );
     }),
   );

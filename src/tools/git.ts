@@ -21,7 +21,7 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Switch deploy branch",
       description:
-        "Use this when the user wants to switch which branch a Lizard service deploys from, and redeploy it on that branch. Returns immediately once the redeploy is triggered. Each call starts another build, even if called again immediately.",
+        "Use this when the user wants to switch which branch a Lizard service deploys from (GitHub or Lizard Git source), and redeploy it on that branch. Returns immediately once the redeploy is triggered. Each call starts another build, even if called again immediately.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1), branch: z.string() },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
@@ -47,7 +47,7 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
     "git_status",
     {
       title: "Get GitHub connection status",
-      description: "Use this when the user wants to see GitHub connection status and the repo/branch each service in a Lizard project is tracking.",
+      description: "Use this when the user wants to see the account's GitHub connection status and the repo/branch each service in a Lizard project is tracking. For repositories hosted on Lizard Git use repo_list / repo_show.",
       inputSchema: { project: z.string().min(1) },
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
@@ -66,7 +66,7 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Get GitHub connect URL",
       description:
-        "Use this when the user wants to connect their GitHub account to Lizard. Returns an install URL the user must open in a browser themselves — this cannot complete automatically.",
+        "Use this when the user wants to connect their GitHub account to Lizard, e.g. to deploy a private GitHub repo. Returns an install URL the user must open in a browser themselves — this cannot complete automatically. Lizard Git repositories need no connection.",
       inputSchema: {},
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },

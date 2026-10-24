@@ -1,0 +1,1177 @@
+{
+  "cliVersion": "4.0.77",
+  "note": "Every Lizard CLI command, and the Lizard MCP tools that do the same job. An empty mcp list says why. scripts/audit-cli.ts checks this against `lizard --help --json`; test/unit/parity.test.ts checks the tool names.",
+  "mcpOnly": {
+    "template_list": "Templates are in the dashboard and the API, not the Lizard CLI.",
+    "template_show": "Templates are in the dashboard and the API, not the Lizard CLI.",
+    "template_deploy": "Templates are in the dashboard and the API, not the Lizard CLI.",
+    "sandbox_write_file": "The Lizard CLI writes local files with sandbox files put; a remote server takes the text in the call.",
+    "sandbox_show": "The Lizard CLI shows a sandbox inside sandbox list.",
+    "secrets_refs": "The Lizard CLI prints references inside secrets list."
+  },
+  "commands": {
+    "add": {
+      "mcp": [
+        "service_create",
+        "addon_create"
+      ]
+    },
+    "billing": {
+      "mcp": [
+        "billing_status"
+      ]
+    },
+    "billing status": {
+      "mcp": [
+        "billing_status"
+      ]
+    },
+    "billing open": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing start": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing start-now": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing cancel": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing resume": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing promo": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing balance": {
+      "mcp": [
+        "billing_summary"
+      ]
+    },
+    "billing transactions": {
+      "mcp": [
+        "billing_summary"
+      ]
+    },
+    "billing payment-methods": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing payment-methods list": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing payment-methods remove": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "config": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "config apply": {
+      "mcp": [
+        "config_apply"
+      ]
+    },
+    "docs": {
+      "mcp": [],
+      "why": "Opens the docs in a browser."
+    },
+    "domain": {
+      "mcp": [
+        "domain_attach"
+      ]
+    },
+    "domain generate": {
+      "mcp": [
+        "domain_attach"
+      ]
+    },
+    "domain list": {
+      "mcp": [
+        "service_show"
+      ]
+    },
+    "domain owned": {
+      "mcp": [
+        "domain_owned_list"
+      ]
+    },
+    "domain dns": {
+      "mcp": [
+        "domain_dns_list",
+        "domain_dns_update"
+      ]
+    },
+    "domain verify": {
+      "mcp": [
+        "domain_verify"
+      ]
+    },
+    "domain delete": {
+      "mcp": [
+        "domain_delete"
+      ]
+    },
+    "events": {
+      "mcp": [
+        "deploy_events"
+      ]
+    },
+    "git": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "git connect": {
+      "mcp": [
+        "git_connect"
+      ]
+    },
+    "git checkout": {
+      "mcp": [
+        "git_checkout"
+      ]
+    },
+    "git status": {
+      "mcp": [
+        "git_status"
+      ]
+    },
+    "git clone": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "git init": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "git diff": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "git commit": {
+      "mcp": [
+        "repo_commit"
+      ]
+    },
+    "git push": {
+      "mcp": [
+        "repo_commit"
+      ]
+    },
+    "git uncommit": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "git sync": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "git switch": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "git sparse": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "git repo": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "git repo list": {
+      "mcp": [
+        "repo_list"
+      ]
+    },
+    "git repo create": {
+      "mcp": [
+        "repo_create"
+      ]
+    },
+    "git repo view": {
+      "mcp": [
+        "repo_show"
+      ]
+    },
+    "git repo edit": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git repo delete": {
+      "mcp": [
+        "repo_delete"
+      ]
+    },
+    "git repo fork": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git repo forks": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git repo star": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git repo unstar": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git branch": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "git branch list": {
+      "mcp": [],
+      "why": "Not covered yet: branches and tags; the Lizard CLI and Lizard SDK (git.repos.refs) cover them."
+    },
+    "git branch create": {
+      "mcp": [
+        "repo_commit"
+      ]
+    },
+    "git branch delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git ls": {
+      "mcp": [
+        "repo_files"
+      ]
+    },
+    "git cat": {
+      "mcp": [
+        "repo_read_file"
+      ]
+    },
+    "git log": {
+      "mcp": [
+        "repo_commits"
+      ]
+    },
+    "git show": {
+      "mcp": [
+        "repo_commits"
+      ]
+    },
+    "git search": {
+      "mcp": [],
+      "why": "Not covered yet: code search in a Lizard Git repository."
+    },
+    "git issue": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "git issue list": {
+      "mcp": [],
+      "why": "Not covered yet: Lizard Git issues; the Lizard CLI and Lizard SDK (git.issues) cover them."
+    },
+    "git issue create": {
+      "mcp": [],
+      "why": "Not covered yet: Lizard Git issues; the Lizard CLI and Lizard SDK (git.issues) cover them."
+    },
+    "git issue view": {
+      "mcp": [],
+      "why": "Not covered yet: Lizard Git issues; the Lizard CLI and Lizard SDK (git.issues) cover them."
+    },
+    "git issue comment": {
+      "mcp": [],
+      "why": "Not covered yet: Lizard Git issues; the Lizard CLI and Lizard SDK (git.issues) cover them."
+    },
+    "git issue edit": {
+      "mcp": [],
+      "why": "Not covered yet: Lizard Git issues; the Lizard CLI and Lizard SDK (git.issues) cover them."
+    },
+    "git issue close": {
+      "mcp": [],
+      "why": "Not covered yet: Lizard Git issues; the Lizard CLI and Lizard SDK (git.issues) cover them."
+    },
+    "git issue reopen": {
+      "mcp": [],
+      "why": "Not covered yet: Lizard Git issues; the Lizard CLI and Lizard SDK (git.issues) cover them."
+    },
+    "git pr": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "git pr list": {
+      "mcp": [
+        "pr_list"
+      ]
+    },
+    "git pr create": {
+      "mcp": [
+        "pr_create"
+      ]
+    },
+    "git pr view": {
+      "mcp": [
+        "pr_show"
+      ]
+    },
+    "git pr comment": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr edit": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr close": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr reopen": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr ready": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr diff": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr commits": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr review": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr reviews": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git pr checks": {
+      "mcp": [
+        "pr_show",
+        "ci_run_list"
+      ]
+    },
+    "git pr merge": {
+      "mcp": [
+        "pr_merge"
+      ]
+    },
+    "git pr checkout": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "git run": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "git run list": {
+      "mcp": [
+        "ci_run_list"
+      ]
+    },
+    "git run view": {
+      "mcp": [
+        "ci_run_show"
+      ]
+    },
+    "git run logs": {
+      "mcp": [
+        "ci_run_show"
+      ]
+    },
+    "git run watch": {
+      "mcp": [
+        "ci_run_show"
+      ]
+    },
+    "git run cancel": {
+      "mcp": [],
+      "why": "Not covered yet: CI run control (cancel, rerun, approve, artifacts, deployments); the Lizard CLI and Lizard SDK (git.actions) cover it."
+    },
+    "git run rerun": {
+      "mcp": [],
+      "why": "Not covered yet: CI run control (cancel, rerun, approve, artifacts, deployments); the Lizard CLI and Lizard SDK (git.actions) cover it."
+    },
+    "git run approve": {
+      "mcp": [],
+      "why": "Not covered yet: CI run control (cancel, rerun, approve, artifacts, deployments); the Lizard CLI and Lizard SDK (git.actions) cover it."
+    },
+    "git run artifacts": {
+      "mcp": [],
+      "why": "Not covered yet: CI run control (cancel, rerun, approve, artifacts, deployments); the Lizard CLI and Lizard SDK (git.actions) cover it."
+    },
+    "git run download": {
+      "mcp": [],
+      "why": "Not covered yet: CI run control (cancel, rerun, approve, artifacts, deployments); the Lizard CLI and Lizard SDK (git.actions) cover it."
+    },
+    "git run deployments": {
+      "mcp": [],
+      "why": "Not covered yet: CI run control (cancel, rerun, approve, artifacts, deployments); the Lizard CLI and Lizard SDK (git.actions) cover it."
+    },
+    "git run review": {
+      "mcp": [],
+      "why": "Not covered yet: CI run control (cancel, rerun, approve, artifacts, deployments); the Lizard CLI and Lizard SDK (git.actions) cover it."
+    },
+    "git workflow": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git workflow list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git workflow run": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env view": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env set": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env secret": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env secret list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env secret set": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env secret delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env var": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env var list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env var set": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git env var delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git variable": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git variable list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git variable set": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git variable delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git secret": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git secret list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git secret set": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git secret delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git collaborator": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git collaborator list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git collaborator add": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git collaborator role": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git collaborator remove": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git invitation": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git invitation list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git invitation accept": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git invitation decline": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git invitation cancel": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git webhook": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git webhook list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git webhook create": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git webhook edit": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git webhook delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git webhook ping": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git webhook deliveries": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git webhook redeliver": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git protect": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git protect list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git protect set": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git protect delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git label": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git label list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git label create": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git label edit": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git label delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release create": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release view": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release edit": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release delete": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release upload": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release download": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git release delete-asset": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git commit-status": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git commit-status list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git commit-status set": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git notification": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git notification list": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git notification read": {
+      "mcp": [],
+      "why": "Lizard Git administration; the Lizard CLI and Lizard SDK (git.*) cover it."
+    },
+    "git token": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "git token list": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "git token create": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "git token delete": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "git whoami": {
+      "mcp": [
+        "whoami"
+      ]
+    },
+    "init": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "keys": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "keys create": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "keys list": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "keys rm": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "link": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "login": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "logout": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "logs": {
+      "mcp": [
+        "logs_tail"
+      ]
+    },
+    "metrics": {
+      "mcp": [
+        "metrics_get",
+        "billing_summary"
+      ]
+    },
+    "open": {
+      "mcp": [],
+      "why": "Opens the dashboard in a browser."
+    },
+    "port": {
+      "mcp": [
+        "service_get_port",
+        "service_set_port"
+      ]
+    },
+    "project": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "project list": {
+      "mcp": [
+        "project_list"
+      ]
+    },
+    "project create": {
+      "mcp": [
+        "project_create"
+      ]
+    },
+    "project pause": {
+      "mcp": [
+        "project_pause"
+      ]
+    },
+    "project resume": {
+      "mcp": [
+        "project_resume"
+      ]
+    },
+    "project delete": {
+      "mcp": [
+        "project_delete"
+      ]
+    },
+    "ps": {
+      "mcp": [
+        "service_list"
+      ]
+    },
+    "redeploy": {
+      "mcp": [
+        "deploy_redeploy"
+      ]
+    },
+    "regions": {
+      "mcp": [
+        "region_list"
+      ]
+    },
+    "pause": {
+      "mcp": [
+        "service_pause"
+      ]
+    },
+    "resume": {
+      "mcp": [
+        "service_resume"
+      ]
+    },
+    "restart": {
+      "mcp": [
+        "deploy_restart"
+      ]
+    },
+    "run": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "s3": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "s3 upload": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "s3 url": {
+      "mcp": [],
+      "why": "Not covered yet: object keys and URLs of Managed Object Storage. The bucket's S3-compatible credentials are in secrets_refs."
+    },
+    "s3 list": {
+      "mcp": [],
+      "why": "Not covered yet: object listing of Managed Object Storage. The bucket's S3-compatible credentials are in secrets_refs."
+    },
+    "sandbox": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "sandbox create": {
+      "mcp": [
+        "sandbox_create"
+      ]
+    },
+    "sandbox list": {
+      "mcp": [
+        "sandbox_list"
+      ]
+    },
+    "sandbox rm": {
+      "mcp": [
+        "sandbox_delete"
+      ]
+    },
+    "sandbox timeout": {
+      "mcp": [
+        "sandbox_set_timeout"
+      ]
+    },
+    "sandbox exec": {
+      "mcp": [
+        "sandbox_exec"
+      ]
+    },
+    "sandbox prompt": {
+      "mcp": [],
+      "why": "Not covered yet: talks to a coding agent (Claude Code, Codex) running in a sandbox; needs agent credentials set with lizard agents."
+    },
+    "sandbox conversations": {
+      "mcp": [],
+      "why": "Not covered yet: a coding agent's conversations in a sandbox (see sandbox prompt)."
+    },
+    "sandbox interrupt": {
+      "mcp": [],
+      "why": "Not covered yet: stops a coding agent's turn in a sandbox (see sandbox prompt)."
+    },
+    "sandbox ssh": {
+      "mcp": [],
+      "why": "An interactive terminal, desktop or live stream; not a fit for one tool call."
+    },
+    "sandbox expose": {
+      "mcp": [
+        "sandbox_expose_port"
+      ]
+    },
+    "sandbox unexpose": {
+      "mcp": [
+        "sandbox_unexpose_port"
+      ]
+    },
+    "sandbox desktop": {
+      "mcp": [],
+      "why": "An interactive terminal, desktop or live stream; not a fit for one tool call."
+    },
+    "sandbox vnc": {
+      "mcp": [],
+      "why": "An interactive terminal, desktop or live stream; not a fit for one tool call."
+    },
+    "sandbox snapshot": {
+      "mcp": [
+        "sandbox_snapshot"
+      ]
+    },
+    "sandbox pause": {
+      "mcp": [
+        "sandbox_pause"
+      ]
+    },
+    "sandbox resume": {
+      "mcp": [
+        "sandbox_resume"
+      ]
+    },
+    "sandbox restore": {
+      "mcp": [
+        "sandbox_create"
+      ]
+    },
+    "sandbox fork": {
+      "mcp": [
+        "sandbox_fork"
+      ]
+    },
+    "sandbox snapshot-scope": {
+      "mcp": [],
+      "why": "Not covered yet: changes where a snapshot may be restored; sandbox_snapshot sets the scope when it is taken."
+    },
+    "sandbox snapshots": {
+      "mcp": [
+        "sandbox_snapshot_list"
+      ]
+    },
+    "sandbox snapshot-rm": {
+      "mcp": [
+        "sandbox_snapshot_delete"
+      ]
+    },
+    "sandbox files": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "sandbox files ls": {
+      "mcp": [
+        "sandbox_list_files"
+      ]
+    },
+    "sandbox files cat": {
+      "mcp": [
+        "sandbox_read_file"
+      ]
+    },
+    "sandbox files put": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "sandbox files get": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "sandbox files rm": {
+      "mcp": [
+        "sandbox_exec"
+      ]
+    },
+    "agents": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "agents status": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "agents login": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "agents add": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "agents remove": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "agents use": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "scale": {
+      "mcp": [
+        "service_scale"
+      ]
+    },
+    "sleep": {
+      "mcp": [
+        "service_sleep_status",
+        "service_sleep_set"
+      ]
+    },
+    "secrets": {
+      "mcp": [
+        "secrets_list"
+      ]
+    },
+    "secrets list": {
+      "mcp": [
+        "secrets_list"
+      ]
+    },
+    "secrets set": {
+      "mcp": [
+        "secrets_set"
+      ]
+    },
+    "secrets delete": {
+      "mcp": [
+        "secrets_delete"
+      ]
+    },
+    "secrets import": {
+      "mcp": [
+        "secrets_set"
+      ]
+    },
+    "service": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "service set": {
+      "mcp": [
+        "service_set"
+      ]
+    },
+    "service show": {
+      "mcp": [
+        "service_show"
+      ]
+    },
+    "service link": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "service delete": {
+      "mcp": [
+        "service_delete"
+      ]
+    },
+    "service rename": {
+      "mcp": [
+        "service_rename"
+      ]
+    },
+    "service logs": {
+      "mcp": [
+        "logs_tail"
+      ]
+    },
+    "skills": {
+      "mcp": [],
+      "why": "Prints the Lizard CLI's own skill files; this server has skills/core and its instructions."
+    },
+    "skills list": {
+      "mcp": [],
+      "why": "Prints the Lizard CLI's own skill files."
+    },
+    "skills get": {
+      "mcp": [],
+      "why": "Prints the Lizard CLI's own skill files."
+    },
+    "skills path": {
+      "mcp": [],
+      "why": "Prints the Lizard CLI's own skill files."
+    },
+    "ssh": {
+      "mcp": [
+        "ssh_exec"
+      ]
+    },
+    "status": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "unlink": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "up": {
+      "mcp": [],
+      "why": "Works on the local folder or machine; a remote MCP server never sees the user's files."
+    },
+    "up status": {
+      "mcp": [
+        "deploy_events"
+      ]
+    },
+    "upgrade": {
+      "mcp": [],
+      "why": "Updates the Lizard CLI itself."
+    },
+    "volume": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "volume list": {
+      "mcp": [
+        "volume_list"
+      ]
+    },
+    "volume create": {
+      "mcp": [
+        "volume_create"
+      ]
+    },
+    "volume resize": {
+      "mcp": [
+        "volume_resize"
+      ]
+    },
+    "volume rm": {
+      "mcp": [
+        "volume_delete"
+      ]
+    },
+    "whoami": {
+      "mcp": [
+        "whoami"
+      ]
+    },
+    "workspace": {
+      "mcp": [],
+      "why": "A group of the commands below."
+    },
+    "workspace create": {
+      "mcp": [
+        "workspace_create"
+      ]
+    },
+    "workspace list": {
+      "mcp": [
+        "workspace_list"
+      ]
+    },
+    "workspace pause": {
+      "mcp": [
+        "workspace_pause"
+      ]
+    },
+    "workspace resume": {
+      "mcp": [
+        "workspace_resume"
+      ]
+    },
+    "workspace resale-pricing": {
+      "mcp": [
+        "workspace_resale_pricing_get",
+        "workspace_resale_pricing_set"
+      ]
+    },
+    "workspace limits": {
+      "mcp": [
+        "workspace_limits_get",
+        "workspace_limits_set"
+      ]
+    },
+    "workspace rm": {
+      "mcp": [
+        "workspace_delete"
+      ]
+    }
+  }
+}

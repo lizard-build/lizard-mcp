@@ -13,6 +13,7 @@ import { registerSshTools } from "./tools/ssh.js";
 import { registerConfigTools } from "./tools/config.js";
 import { registerTemplateTools } from "./tools/templates.js";
 import { registerSandboxTools } from "./tools/sandboxes.js";
+import { registerRepoTools } from "./tools/repos.js";
 
 export interface ToolContext {
   api: ApiClient;
@@ -22,17 +23,25 @@ export interface ToolContext {
   accessToken: string;
 }
 
-const INSTRUCTIONS = `
-Lizard is a PaaS: deploy GitHub repos as containerized apps, provision managed
-Postgres/Redis/S3 addons, and manage them (logs, metrics, secrets, domains, scaling,
-sandbox volumes, shell exec) — scoped to the authenticated user's own workspaces and projects.
+export const INSTRUCTIONS = `
+Lizard is a cloud for apps, databases and sandboxes: deploy GitHub or Lizard Git repos as
+containerized apps, provision managed Postgres/Redis/S3 addons, and manage them (logs,
+metrics, secrets, domains, scaling, volumes, shell exec); run code in Lizard Sandboxes; host
+repositories, pull requests and CI on Lizard Git — scoped to the authenticated user's own
+workspaces and projects.
 
 ## Sandboxes
 
-Lizard Sandboxes run code in ephemeral cloud instances, separate from app services.
-Use sandbox_create with an explicit project and finite lifetime, then sandbox_exec,
-sandbox_read_file, and sandbox_write_file with its returned ID. Clean up with
+Lizard Sandboxes run code in Firecracker microVMs, separate from app services.
+Use sandbox_create with an explicit project and finite lifetime (default 5 minutes, at most
+a day; sandbox_set_timeout changes it), then sandbox_exec, sandbox_read_file,
+sandbox_write_file and sandbox_list_files with its returned ID. Clean up with
 sandbox_delete when the task ends. These tools do not deploy an app.
+sandbox_pause keeps memory, processes and files and stops billing for compute;
+sandbox_resume continues where it stopped. sandbox_snapshot saves a running sandbox to
+start new ones from (sandbox_create with snapshotId); sandbox_fork starts live copies.
+sandbox_expose_port gives a port an HTTPS URL that carries its access token. A persistent volume (volume_create,
+then sandbox_create with volume) keeps files after the sandbox is gone.
 Creation uses billed resources. Create, execute, write, and delete require confirm:true
 after the user approves the action. For sandbox_exec, approval includes destruction of
 the whole sandbox if cancellation, timeout, or a failed request requires cleanup.
@@ -94,7 +103,7 @@ with secrets_set), resolved at deploy time. Use secrets_refs to see exactly whic
 addon/key combinations are available in a project before wiring a reference. A ref to a
 missing addon or key silently resolves to an empty string rather than failing the
 deploy — after wiring one, it's worth confirming the consumer actually received a
-value (e.g. via logs_tail or ssh_exec) rather than assuming success.
+value (e.g. via logs_tail, or a page of the app that shows it) rather than assuming success.
 
 ## What triggers a rebuild vs. just a restart
 
@@ -115,18 +124,37 @@ value (e.g. via logs_tail or ssh_exec) rather than assuming success.
   starts again from the same image with its data. Prefer this over service_delete when the
   user wants to stop paying for something they may want back.
 - A paused service is not restarted or redeployed (those return an error) until resumed.
+- project_delete puts services and databases in trash for 3 days, but deletes the
+  project's sandboxes, their volumes and snapshots at once. Say so before asking.
 - service_sleep_set makes a service serverless (sleeps when idle with its memory saved,
   wakes in ~1 s on the next request) or always on. Unlike pause, a sleeping service wakes
   by itself.
 
+## Lizard Git
+
+Lizard Git (lizard.build/git) is Lizard's own git hosting. repo_* tools read and change
+its repositories (every commit is made on the server with repo_commit; there is no clone),
+pr_* tools handle pull requests, ci_* tools read CI runs and logs. The git_* tools are about
+a service's GitHub connection, not Lizard Git. To deploy a Lizard Git repo, call
+service_create with repoUrl lizard:owner/name. Lizard Git refuses API keys with scopes.
+
+## Workspace limits
+
+A workspace owner can cap running sandboxes, CPU, memory and disk (workspace_limits_set).
+A call that fails with WORKSPACE_SANDBOX_LIMIT or WORKSPACE_USAGE_LIMIT will fail the same
+way on retry: read workspace_limits_get, then pause or delete a sandbox, scale a service
+down, or ask the owner to raise the limit.
+
 ## Writes are immediate and real
 
 There is no separate platform-side confirmation step — a tool call is the action.
-Destructive tools (project_delete, service_delete, secrets_delete, domain_delete) require confirm:true
+Destructive tools (project_delete, workspace_delete, service_delete, secrets_delete,
+domain_delete, volume_delete, sandbox_delete, sandbox_snapshot_delete, repo_delete) require confirm:true
 in the call itself since there's no interactive prompt in MCP; still get the user's
 explicit go-ahead in conversation before setting it. ssh_exec runs arbitrary shell
 commands inside the service's container — only use it for commands the user would
-recognize and approve.
+recognize and approve. Shell access to services is turned off on Lizard for now (the
+platform answers 403); to run commands, use a sandbox instead.
 
 ## Composition
 
@@ -159,6 +187,7 @@ export function getServer(accessToken: string): McpServer {
   registerConfigTools(server, ctx);
   registerTemplateTools(server, ctx);
   registerSandboxTools(server, ctx);
+  registerRepoTools(server, ctx);
 
   return server;
 }

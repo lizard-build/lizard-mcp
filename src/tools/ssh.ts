@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
+import { APIError, apiErrorFrom } from "../lib/api.js";
 
 const PLATFORM_URL = process.env.PLATFORM_URL || "https://lizard.build";
 
@@ -19,7 +20,8 @@ export function registerSshTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Run shell command",
       description:
-        "Use this when the user wants to run a one-off shell command inside a running Lizard service's container and see its output. Waits for the command to finish. This executes arbitrary code in the user's own infrastructure on their behalf — requires explicit confirmation.",
+        "Use this when the user wants to run a one-off shell command inside a running Lizard service's container and see its output. Waits for the command to finish. This executes arbitrary code in the user's own infrastructure on their behalf — requires explicit confirmation. " +
+        "Shell access to services is turned off on Lizard for now: the platform answers 403 \"Shell access to services is disabled\". To run commands, use a sandbox (sandbox_create, sandbox_exec); to check what a service sees, use logs_tail.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1),
@@ -61,8 +63,13 @@ async function execAndCollect(appId: string, cmd: string, accessToken: string): 
     signal: controller.signal,
   });
   if (!res.ok || !res.body) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`exec failed: HTTP ${res.status}${body ? `: ${body}` : ""}`);
+    let parsed: unknown = null;
+    try { parsed = await res.json(); } catch {}
+    const err = apiErrorFrom(res.status, res.statusText, parsed);
+    if (res.status === 403 && /disabled/i.test(err.message)) {
+      throw new APIError(403, `${err.message}. Shell access to services is turned off on Lizard; run the command in a sandbox (sandbox_create, sandbox_exec) instead.`, err.code, err.body);
+    }
+    throw err;
   }
 
   const reader = res.body.getReader();

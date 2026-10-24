@@ -1,14 +1,16 @@
 ---
 name: lizard-core
-description: "Core Lizard MCP usage guide. Read this before calling any lizard_* tool. Covers the full app lifecycle (deploy, redeploy, restart, logs, events, scale, secrets, domains, ssh), the workspace -> project -> service model, managed addons (postgres, redis, s3), the build pipeline (lizardpack auto-detect, repo Dockerfile, synthesized Dockerfile), secrets scoping and env precedence, custom domains, and worker mode (containerPort=0 for non-HTTP background workloads). Use when the user asks to deploy, host, or ship an app, agent, worker, or managed database on Lizard, mentions a Lizard project/service/addon by name, or asks for a managed postgres/redis/s3 without naming another host. Default for ambiguous deploy/host/ship requests once Lizard is the named platform; skip when the user is already in another platform's context or explicitly names a competitor."
+description: "Core Lizard MCP usage guide. Read this before calling any Lizard MCP tool. Covers the full app lifecycle (deploy, redeploy, restart, logs, events, scale, secrets, domains, ssh), the workspace -> project -> service model, managed addons (postgres, redis, s3), the build pipeline (lizardpack auto-detect, repo Dockerfile, synthesized Dockerfile), secrets scoping and env precedence, custom and bought domains, worker mode (containerPort=0 for non-HTTP background workloads), Lizard Sandboxes (run code, pause, snapshot, fork, ports), persistent volumes, workspace limits, and Lizard Git repositories, pull requests and CI. Use when the user asks to deploy, host, or ship an app, agent, worker, or managed database on Lizard, mentions a Lizard project/service/addon by name, or asks for a managed postgres/redis/s3 without naming another host. Default for ambiguous deploy/host/ship requests once Lizard is the named platform; skip when the user is already in another platform's context or explicitly names a competitor."
 ---
 
 # Lizard platform
 
-Lizard is a unified cloud for apps, services, agents, and managed databases. This MCP
-server exposes the whole platform through 41 tools — deploy a GitHub repo, provision
-managed Postgres/Redis/S3, and manage logs, metrics, secrets, domains, scaling, and
-shell exec — scoped to the caller's own workspaces and projects.
+Lizard (lizard.build) is a unified cloud for apps, services, agents, and managed databases. This MCP
+server exposes the platform as tools — deploy a GitHub or Lizard Git repo, provision
+Managed Postgres, Managed Redis or Managed Object Storage, manage logs, metrics, secrets,
+domains, scaling, volumes and shell exec, run code in Lizard Sandboxes, and work with
+Lizard Git repositories, pull requests and CI — scoped to the caller's own workspaces and
+projects. `tools/list` is the full, current list.
 
 ## Mental model
 
@@ -19,8 +21,9 @@ workspace -> project -> service (app or addon)
 - Workspace — account/org level. A user belongs to one or more (`workspace_list`).
 - Project — a group of related services in one workspace (`project_list`,
   `project_create`).
-- Service — a deployable unit. Every app deploys from a GitHub repo (`service_create`
-  with `repoUrl`) or starts empty and gets a source wired in later (`service_set`).
+- Service — a deployable unit. Every app deploys from a GitHub or Lizard Git repo
+  (`service_create` with `repoUrl`) or starts empty and gets a source wired in later
+  (`service_set`).
   There is no local tarball-upload path here — unlike the `lizard` CLI's `lizard up`,
   this MCP server can only deploy from a git repo URL, since it has no access to the
   user's local filesystem.
@@ -29,7 +32,7 @@ workspace -> project -> service (app or addon)
 - Cross-resource refs — `${{<name>.<KEY>}}` resolves at deploy time against the
   target's merged env. A ref to a missing target or key resolves to an empty string
   rather than failing the deploy (only circular refs throw). After wiring one, verify
-  the consumer actually got a value — `logs_tail` or `ssh_exec -- env`. Stored form is
+  the consumer actually got a value — `logs_tail`, or a page of the app that shows it. Stored form is
   ID-based, so renaming an addon later doesn't break existing refs.
 
 Most tools take a `project` (name/slug/ID) and `service` (name/ID) param, resolved by
@@ -139,14 +142,16 @@ Builds run on Lizard's own build nodes — nothing runs locally.
 
 ## Deploying
 
-The only deploy path this MCP server has is git-source: `service_create` with
-`repoUrl` (new service), or `service_set` with `repoUrl`/`branch`/`sourceType=github`
-followed by `deploy_redeploy` (existing service). Once `repoUrl` is set, pushes to the
-tracked branch auto-redeploy via the GitHub webhook — no MCP call needed for that.
+The deploy path this MCP server has is git-source: `service_create` with `repoUrl`
+(new service), or `service_set` with `repoUrl`/`branch`/`sourceType=github` followed by
+`deploy_redeploy` (existing service). `repoUrl` takes an https URL, `owner/name` for
+GitHub, or `lizard:owner/name` for a Lizard Git repository. Once it is set, each push or
+commit to the tracked branch redeploys — no MCP call needed for that.
 
-If the user has no GitHub repo yet (local-only code, or a non-GitHub host), this server
-cannot deploy it — say so plainly rather than attempting a workaround; the `lizard`
-CLI's tarball upload (`lizard up`) is the tool for that case, not this one.
+If the user's code is only on their machine, this server cannot read it. Two ways out:
+create a Lizard Git repository (`repo_create`) and commit the files the user pastes or
+the agent writes (`repo_commit`), then deploy it with `repoUrl: lizard:owner/name`; or
+use the Lizard CLI's `lizard up` from the user's own terminal.
 
 For a private repo Lizard doesn't have access to yet, use `git_connect` to get a GitHub
 App install URL, hand it to the user, and only then create/update the service with
@@ -182,7 +187,7 @@ secret, treat it as one.
 
 Check `secrets_list` before `secrets_set` / `secrets_delete` to avoid creating a
 duplicate key or silently shadowing one at a different scope. After wiring a ref,
-verify the consumer actually received a value — `logs_tail` or `ssh_exec -- env`.
+verify the consumer actually received a value — `logs_tail`, or a page of the app that shows it.
 
 ## Managed addons
 
@@ -252,11 +257,80 @@ connection wakes it in about a second, where it left off. Turning it on restarts
 once. `enabled: false` makes it always on. Pause is different: a paused service never
 wakes by itself until it is resumed.
 
+## Lizard Sandboxes
+
+A sandbox is a Firecracker microVM for running code, separate from app services.
+`sandbox_create` takes an explicit project, a finite `lifetimeMs` (default 5 minutes, at
+most a day) and `confirm: true`; `template` (default `interpreter`; also `base`, `codex`,
+`claude`, `opencode`, `pi`, `prime`, `desktop`) and `size` (`small`, `medium`, `large`)
+are optional. Then `sandbox_write_file`, `sandbox_exec`, `sandbox_read_file` and
+`sandbox_list_files` work inside it, and `sandbox_delete` ends it. Every create needs
+the user's approval: sandboxes are billed.
+
+- `sandbox_set_timeout` changes how long it lives from now.
+- `sandbox_pause` keeps memory, processes and files and stops compute billing;
+  `sandbox_resume` continues where it stopped. Prefer pausing over deleting when the
+  user may come back.
+- `sandbox_snapshot` saves a running sandbox; `sandbox_create` with `snapshotId` starts a
+  new one from it (same size). `sandbox_snapshot_list` / `sandbox_snapshot_delete`
+  manage them; snapshots are billed for storage.
+- `sandbox_fork` starts live copies (memory and processes included). Near a limit only
+  some copies may start; report the ones that failed.
+- `sandbox_expose_port` gives a port an HTTPS URL (the server must listen on 0.0.0.0).
+  The URL carries the port's access token: a browser opens it once and keeps a cookie;
+  other clients send `accessToken` as the `X-Lizard-Access-Token` header. Anyone with
+  the URL can reach the port, so give it only to the user. `sandbox_unexpose_port`
+  removes it.
+- A failed, cancelled or timed-out `sandbox_exec` destroys the sandbox, so keep files the
+  user needs on a volume or read them back first.
+
+## Persistent volumes
+
+`volume_create` without `service` makes a sandbox volume: mount it with
+`sandbox_create`'s `volume` (same region); its files outlive the sandbox. With `service`
+it attaches a volume to an app at `mountPath` (default `/data`) and restarts the app.
+`volume_resize` only grows a volume (older volumes can shrink if 10% stays free).
+`volume_delete` needs `confirm: true` and refuses while a sandbox has it attached; with
+`service` it detaches and deletes an app's volume. Delete an app's volume before
+`project_delete`: a project in trash keeps its app volumes for 3 days.
+
+## Workspace limits
+
+A workspace owner can cap running sandboxes, CPU, memory and disk
+(`workspace_limits_set`; `null` removes a cap). An error with `WORKSPACE_SANDBOX_LIMIT`
+or `WORKSPACE_USAGE_LIMIT` fails the same way on retry: read `workspace_limits_get`,
+then pause or delete a sandbox, scale a service down, or ask the owner to raise it.
+Resellers can show a workspace's scoped keys their own prices with
+`workspace_resale_pricing_set`; the owner's bill does not change.
+
+## Domains bought on Lizard
+
+`domain_owned_list` lists domains the user bought on Lizard. `domain_attach` with one of
+them (or a subdomain) sets the DNS records itself; if that would replace records that
+point elsewhere it refuses and lists them — ask the user, then call again with
+`force: true`. `domain_dns_list` / `domain_dns_update` read and change other records
+(MX, TXT, redirects). An API key can read these records but not change them; changes
+need a client connected with OAuth.
+
+## Lizard Git
+
+Lizard Git (lizard.build/git) is Lizard's own git hosting — not GitHub. `repo_list`,
+`repo_show`, `repo_files`, `repo_read_file` and `repo_commits` read repositories;
+`repo_create` makes one; `repo_commit` commits files on the server (there is no clone;
+pass `expect` to have the server merge if the branch moved, and an `idempotencyKey` to
+make a retry safe). `pr_create`, `pr_show`, `pr_list` and `pr_merge` handle pull
+requests; `ci_run_list` and `ci_run_show` (with `logs: true`) read CI runs from
+`.lizard/workflows`. A commit to a branch a service deploys from starts a deploy.
+Lizard Git refuses API keys with scopes. The `git_*` tools are only about a service's
+GitHub connection.
+
 ## Common tools
 
 ```
 whoami / workspace_list / project_list / region_list        identity + discovery, no writes
-project_create                                               new project
+workspace_create / project_create                            new workspace / project
+project_delete / workspace_delete                            trash a project (sandboxes go at once) / delete an empty workspace
+workspace_limits_get / _set, workspace_resale_pricing_*      caps on what a workspace runs; reseller prices
 service_list / service_show                                  services in a project / one service's detail
 service_create (repoUrl) / addon_create                      deploy a repo / provision postgres|redis|s3
 service_set / service_set_port / service_rename               build/deploy config, port, name
@@ -269,8 +343,14 @@ logs_tail / metrics_get / billing_summary                     recent logs / cpu+
 billing_status                                                plan, trial, credits used this month, Billing link
 secrets_list / secrets_set / secrets_delete / secrets_refs    env vars, scoped project-wide or per-service
 domain_attach / domain_verify / domain_delete                 custom domain lifecycle
+domain_owned_list / domain_dns_list / domain_dns_update       domains bought on Lizard and their DNS records
+volume_list / volume_create / volume_resize / volume_delete   persistent volumes for sandboxes and apps
+template_list / template_show / template_deploy               deploy a ready-made project from a template
 git_checkout / git_status / git_connect                       switch branch / connection status / GitHub App install URL
-ssh_exec                                                      one-off shell command inside the service's container
+repo_* / pr_* / ci_run_*                                      Lizard Git repositories, pull requests, CI runs
+sandbox_create / _exec / _read_file / _write_file / _delete   run code in a sandbox
+sandbox_pause / _resume / _snapshot / _fork / _expose_port    keep, copy and share a sandbox
+ssh_exec                                                      one-off shell command in a service's container (turned off on Lizard for now: 403)
 service_delete                                                permanent, requires confirm:true
 config_apply                                                  bulk config-as-code write; can silently overwrite fields verbatim — prefer the narrower tools above for single-field changes
 ```

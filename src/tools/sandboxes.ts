@@ -2,15 +2,23 @@ import { posix } from "node:path";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
-import { APIError, apiErrorFrom, NO_TOKEN_MESSAGE } from "../lib/api.js";
+import { APIError, apiErrorFrom, NO_TOKEN_MESSAGE, withQuery } from "../lib/api.js";
 import { resolveProject } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
 
 const MAX_TEXT_BYTES = 65536;
+const MIN_LIFETIME_MS = 60_000;
+/** A day: long enough for an agent's working session, short enough that a forgotten sandbox stops. */
+const MAX_LIFETIME_MS = 86_400_000;
+/** Matches lizard-cli's MAX_FORK_COUNT. */
+const MAX_FORK_COUNT = 100;
 const id = z.string().min(1).max(128).regex(/^[a-zA-Z0-9_-]+$/).describe("Exact sandbox ID from sandbox_create or sandbox_list");
+const snapshotId = z.string().min(1).max(128).regex(/^[a-zA-Z0-9_-]+$/).describe("Snapshot ID from sandbox_snapshot or sandbox_snapshot_list");
 const path = z.string().min(1).refine(value => !value.includes("\0"), "Path must not contain NUL bytes");
+const lifetime = z.number().int().min(MIN_LIFETIME_MS).max(MAX_LIFETIME_MS);
 const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const write = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true };
+const change = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 
 async function request<T>(ctx: ToolContext, route: string, method = "GET", body?: unknown, signal?: AbortSignal, text = false): Promise<T> {
   if (!ctx.accessToken) throw new Error(NO_TOKEN_MESSAGE);
@@ -46,12 +54,32 @@ function clip(text: string) {
   };
 }
 
-export async function execInSandbox(ctx: ToolContext, sandboxId: string, command: string, cwd: string, timeoutMs: number, signal: AbortSignal) {
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** Poll until `done` says yes or `waitMs` runs out; returns the last value either way. */
+async function waitFor<T>(read: () => Promise<T>, done: (value: T) => boolean, waitMs: number, fail?: (value: T) => string | null): Promise<T> {
+  const until = Date.now() + waitMs;
+  let value = await read();
+  while (!done(value) && Date.now() < until) {
+    const reason = fail?.(value);
+    if (reason) throw new Error(reason);
+    await sleep(1000);
+    value = await read();
+  }
+  return value;
+}
+
+/** A volume name or an id: ids are what the platform generates (`fcv-…` or a 21-character nanoid). */
+export function volumeRef(volume: string): { volumeId: string } | { volumeName: string } {
+  return /^fcv-/.test(volume) || /^[A-Za-z0-9_-]{21}$/.test(volume) ? { volumeId: volume } : { volumeName: volume };
+}
+
+export async function execInSandbox(ctx: ToolContext, sandboxId: string, command: string, cwd: string, timeoutMs: number, signal: AbortSignal, envs?: Record<string, string>) {
   signal.throwIfAborted();
   if (!ctx.accessToken) throw new Error(NO_TOKEN_MESSAGE);
   try {
     const result = await request<{ stdout: string; stderr: string; exitCode: number; truncated?: boolean }>(ctx, `${route(sandboxId)}/exec`, "POST", {
-      cmd: command, workdir: cwd, timeoutMs,
+      cmd: command, workdir: cwd, timeoutMs, ...(envs && Object.keys(envs).length ? { envs } : {}),
     }, AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]));
     const stdout = clip(result.stdout);
     const stderr = clip(result.stderr);
@@ -65,6 +93,9 @@ export async function execInSandbox(ctx: ToolContext, sandboxId: string, command
   }
 }
 
+interface SandboxRecord { id?: string; sandboxId?: string; status?: string; [key: string]: unknown }
+interface SnapshotRecord { id: string; status: string; error?: string; [key: string]: unknown }
+
 export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
   server.registerTool("sandbox_list", {
     title: "List sandboxes",
@@ -77,7 +108,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_show", {
     title: "Show sandbox",
-    description: "Read a sandbox's status, project, template, and expiry. The platform checks the current user's access to this ID.",
+    description: "Read a sandbox's status (running, pausing, paused, resuming, ...), project, template, size and expiry. The platform checks the current user's access to this ID.",
     inputSchema: { sandboxId: id }, annotations: readOnly,
   }, handle(async ({ sandboxId }) => {
     return ctx.api.get(route(sandboxId));
@@ -85,25 +116,43 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_create", {
     title: "Create sandbox",
-    description: "Create an ephemeral interpreter sandbox in an explicit project. Uses billed cloud resources and returns its ID. The default lifetime is 5 minutes; expiry deletes its files. No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
+    description:
+      "Create a sandbox (a Firecracker microVM) in an explicit project. Uses billed cloud resources and returns its ID. " +
+      "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
+      "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). Sizes: small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
+      "Pass snapshotId to start from a saved snapshot (it keeps the snapshot's size, so leave size out) and volume to mount a persistent volume. " +
+      "No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
     inputSchema: {
       project: z.string().min(1),
-      lifetimeMs: z.number().int().min(60000).max(3600000).default(300000),
+      lifetimeMs: lifetime.default(300000).describe("Lifetime in ms, 60,000 to 86,400,000 (a day); extend later with sandbox_set_timeout"),
+      template: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional().describe("Template name; default interpreter"),
+      size: z.enum(["small", "medium", "large"]).optional().describe("Default small; not with snapshotId"),
+      region: z.string().min(1).optional().describe("Region code (region_list); default the platform's choice"),
+      volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project (volume_list)"),
+      snapshotId: snapshotId.optional(),
       confirm: z.literal(true),
     }, annotations: { ...write, destructiveHint: false, openWorldHint: false },
-  }, handle(async ({ project, lifetimeMs }, extra) => {
+  }, handle(async ({ project, lifetimeMs, template, size, region, volume, snapshotId: fromSnapshot }, extra) => {
+    if (fromSnapshot && size) throw new Error("size can't be combined with snapshotId: a snapshot starts at the size it was taken at.");
     extra.signal.throwIfAborted();
     const resolved = await resolveProject(ctx.api, project);
     extra.signal.throwIfAborted();
-    const sandbox = await ctx.api.post<{ sandboxId: string }>("/api/sandboxes", {
-      template: "interpreter", projectId: resolved.id, size: "small", timeoutMs: lifetimeMs,
-      metadata: { integration: "lizard-mcp" },
-    });
+    const body = fromSnapshot
+      ? { snapshotId: fromSnapshot, projectId: resolved.id, timeoutMs: lifetimeMs, region, ...(volume ? volumeRef(volume) : {}), metadata: { integration: "lizard-mcp" } }
+      : {
+          template: template ?? "interpreter", projectId: resolved.id, size: size ?? "small", timeoutMs: lifetimeMs,
+          ...(region ? { region } : {}), ...(volume ? volumeRef(volume) : {}), metadata: { integration: "lizard-mcp" },
+        };
+    const sandbox = await ctx.api.post<SandboxRecord>("/api/sandboxes", body);
+    const sandboxId = sandbox.sandboxId ?? sandbox.id!;
     if (extra.signal.aborted) {
-      await destroy(ctx, sandbox.sandboxId);
+      await destroy(ctx, sandboxId);
       extra.signal.throwIfAborted();
     }
-    return { sandboxId: sandbox.sandboxId, projectId: resolved.id, template: "interpreter", workdir: "/workspace", lifetimeMs };
+    return {
+      ...sandbox, sandboxId, projectId: resolved.id, template: sandbox.template ?? (fromSnapshot ? undefined : template ?? "interpreter"),
+      workdir: "/workspace", lifetimeMs,
+    };
   }));
 
   server.registerTool("sandbox_exec", {
@@ -112,11 +161,12 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     inputSchema: {
       sandboxId: id, command: z.string().trim().min(1), cwd: path.default("/workspace"),
       timeoutMs: z.number().int().min(1000).max(120000).default(60000),
+      envs: z.record(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/), z.string()).optional().describe("Environment variables for this command only"),
       confirm: z.literal(true).describe("User approved the command and loss of sandbox files if cancellation, timeout, or request failure requires cleanup"),
     }, annotations: write,
-  }, handle(async ({ sandboxId, command, cwd, timeoutMs }, extra) => {
+  }, handle(async ({ sandboxId, command, cwd, timeoutMs, envs }, extra) => {
     extra.signal.throwIfAborted();
-    return execInSandbox(ctx, sandboxId, command, posix.resolve("/workspace", cwd), timeoutMs, extra.signal);
+    return execInSandbox(ctx, sandboxId, command, posix.resolve("/workspace", cwd), timeoutMs, extra.signal, envs);
   }));
 
   server.registerTool("sandbox_read_file", {
@@ -148,13 +198,132 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     return { sandboxId, path: resolved, bytes: Buffer.byteLength(content) };
   }));
 
+  server.registerTool("sandbox_list_files", {
+    title: "List sandbox files",
+    description: "List one directory inside a sandbox: name, path, type and size of each entry. Relative paths start at /workspace.",
+    inputSchema: { sandboxId: id, path: path.default("/workspace") }, annotations: readOnly,
+  }, handle(async ({ sandboxId, path: dir }) => {
+    const resolved = posix.resolve("/workspace", dir);
+    const entries = await ctx.api.get(withQuery(`${route(sandboxId)}/files/list`, { path: resolved }));
+    return { sandboxId, path: resolved, entries };
+  }));
+
   server.registerTool("sandbox_delete", {
     title: "Delete sandbox",
-    description: "Permanently destroy one sandbox and all its files. Get the user's approval before calling. Use this to clean up a sandbox created for a task. Does not delete its project or any app services.",
+    description: "Permanently destroy one sandbox and all its files (an attached volume stays). Get the user's approval before calling. Use this to clean up a sandbox created for a task. Does not delete its project or any app services.",
     inputSchema: { sandboxId: id, confirm: z.literal(true) },
     annotations: { ...write, idempotentHint: true, openWorldHint: false },
   }, handle(async ({ sandboxId }, extra) => {
     extra.signal.throwIfAborted();
     return { sandboxId, deleted: await destroy(ctx, sandboxId) };
+  }));
+
+  server.registerTool("sandbox_set_timeout", {
+    title: "Set sandbox lifetime",
+    description: "Change how long a sandbox lives from now: it stops and loses its files (except an attached volume) when the time runs out. Use it to keep a sandbox the user still needs, or to end one sooner. 60,000 ms to 86,400,000 ms (a day).",
+    inputSchema: { sandboxId: id, lifetimeMs: lifetime },
+    annotations: { ...change, idempotentHint: true },
+  }, handle(async ({ sandboxId, lifetimeMs }) => ctx.api.post(`${route(sandboxId)}/timeout`, { timeoutMs: lifetimeMs })));
+
+  for (const op of ["pause", "resume"] as const) {
+    server.registerTool(`sandbox_${op}`, {
+      title: op === "pause" ? "Pause sandbox" : "Resume sandbox",
+      description: op === "pause"
+        ? "Save a running sandbox's memory, processes and files, and stop it. A paused sandbox costs only its storage and does not count against the running-sandbox limit. Waits up to 2 minutes for it to finish pausing. Undo with sandbox_resume."
+        : "Start a paused sandbox again, where it left off: same memory, processes and files. Waits up to 2 minutes for it to run. If resuming fails, the saved state is kept; try again.",
+      inputSchema: { sandboxId: id },
+      annotations: { ...change, idempotentHint: true },
+    }, handle(async ({ sandboxId }) => {
+      const queued = await ctx.api.post<{ status?: string }>(`${route(sandboxId)}/${op}`, {});
+      const target = op === "pause" ? "paused" : "running";
+      const final = await waitFor(
+        () => ctx.api.get<{ id: string; status: string }>(route(sandboxId)),
+        (s) => s.status === target,
+        120_000,
+        (s) => (["running", "pausing", "paused", "resuming"].includes(s.status) ? null : `Sandbox ${sandboxId} is ${s.status}.`),
+      );
+      return { sandboxId, status: final.status, ...(final.status !== target ? { note: `Still ${final.status}; check again with sandbox_show.` } : {}), queued };
+    }));
+  }
+
+  server.registerTool("sandbox_snapshot", {
+    title: "Snapshot sandbox",
+    description:
+      "Save a running sandbox, memory and processes included, as a private snapshot to start new sandboxes from (sandbox_create with snapshotId). " +
+      "The sandbox keeps running. scope says where it may be restored: user (any of your projects), workspace, or project. Snapshots are billed for storage until deleted. " +
+      "Waits up to 2 minutes for the snapshot to be ready; a large one may still be processing, so check sandbox_snapshot_list.",
+    inputSchema: {
+      sandboxId: id,
+      name: z.string().min(1).max(100).describe("A name for the snapshot"),
+      scope: z.enum(["user", "workspace", "project"]).optional(),
+    },
+    annotations: change,
+  }, handle(async ({ sandboxId, name, scope }) => {
+    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(scope ? { scope } : {}) });
+    return waitFor(
+      () => ctx.api.get<SnapshotRecord>(`/api/sandbox-snapshots/${encodeURIComponent(started.id)}`),
+      (s) => s.status === "ready",
+      120_000,
+      (s) => (s.status === "failed" ? s.error || "Snapshot capture failed" : null),
+    );
+  }));
+
+  server.registerTool("sandbox_snapshot_list", {
+    title: "List sandbox snapshots",
+    description: "List the saved sandbox snapshots of a project: ID, name, template, region, size, scope and status.",
+    inputSchema: { project: z.string().min(1) }, annotations: readOnly,
+  }, handle(async ({ project }) => {
+    const resolved = await resolveProject(ctx.api, project);
+    return ctx.api.get(`/api/projects/${encodeURIComponent(resolved.id)}/snapshots`);
+  }));
+
+  server.registerTool("sandbox_snapshot_delete", {
+    title: "Delete sandbox snapshot",
+    description: "Permanently delete a saved sandbox snapshot. Sandboxes already started from it keep running. Get the user's approval first.",
+    inputSchema: { snapshotId, confirm: z.literal(true) },
+    annotations: { ...write, idempotentHint: true, openWorldHint: false },
+  }, handle(async ({ snapshotId: snap }) => {
+    await ctx.api.delete(`/api/sandbox-snapshots/${encodeURIComponent(snap)}`);
+    return { snapshotId: snap, deleted: true };
+  }));
+
+  server.registerTool("sandbox_fork", {
+    title: "Fork sandbox",
+    description:
+      "Start live copies of a running sandbox: memory, processes and files. The source pauses for a moment and keeps running. " +
+      "Each copy is a new billed sandbox and counts toward the running-sandbox limits, so near a limit only some may start: " +
+      "the result has one entry per copy, a sandbox or an error. Copies live as long as the source unless lifetimeMs is given. Get the user's approval first.",
+    inputSchema: {
+      sandboxId: id,
+      count: z.number().int().min(1).max(MAX_FORK_COUNT).default(1),
+      lifetimeMs: lifetime.optional(),
+      confirm: z.literal(true),
+    },
+    annotations: { ...change, openWorldHint: false },
+  }, handle(async ({ sandboxId, count, lifetimeMs }) => {
+    const results = await ctx.api.post<Array<{ sandbox?: SandboxRecord; error?: string }>>(`${route(sandboxId)}/fork`, {
+      count, ...(lifetimeMs ? { timeoutMs: lifetimeMs } : {}),
+    });
+    const list = Array.isArray(results) ? results : [];
+    const started = list.filter((r) => r.sandbox).length;
+    if (started === 0) throw new Error(`No copy started: ${list.map((r) => r.error).filter(Boolean).join("; ") || "fork failed"}`);
+    return { sourceId: sandboxId, requested: count, started, failed: list.length - started, results: list };
+  }));
+
+  server.registerTool("sandbox_expose_port", {
+    title: "Expose sandbox port",
+    description: "Give a port inside a running sandbox an HTTPS URL, e.g. to show the user a web app the sandbox runs (it must listen on 0.0.0.0). The port stays private: the returned url carries an access token, so a browser opens it once and then keeps a cookie; other clients send accessToken in the X-Lizard-Access-Token header. Anyone with the url or token can reach the port, so share it only with the user. Remove it with sandbox_unexpose_port.",
+    inputSchema: { sandboxId: id, port: z.number().int().min(1).max(65535) },
+    annotations: { ...change, idempotentHint: true, openWorldHint: true },
+  }, handle(async ({ sandboxId, port }) => ctx.api.post(`${route(sandboxId)}/expose/${port}`)));
+
+  server.registerTool("sandbox_unexpose_port", {
+    title: "Remove sandbox port URL",
+    description: "Remove the HTTPS URL of a sandbox port; its access token stops working. The process inside keeps running.",
+    inputSchema: { sandboxId: id, port: z.number().int().min(1).max(65535) },
+    annotations: { ...change, idempotentHint: true },
+  }, handle(async ({ sandboxId, port }) => {
+    await ctx.api.delete(`${route(sandboxId)}/expose/${port}`);
+    return { sandboxId, port, status: "unexposed" };
   }));
 }

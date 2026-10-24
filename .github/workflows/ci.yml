@@ -20,3 +20,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # Every Lizard CLI command must be mapped to MCP tools (or say why not), for the
+      # CLI version the map was written against.
+      - name: Lizard CLI coverage
+        run: |
+          npm install -g "@lizard-build/cli@$(node -p "require('./test/parity/cli-coverage.json').cliVersion")"
+          npm run audit:cli

@@ -9,14 +9,14 @@ export function registerTemplateTools(server: McpServer, ctx: ToolContext) {
     title: "List templates",
     description: "Find published app templates to deploy. Set mine to list your own templates, including private ones. Use template_show to inspect required variables before deploying.",
     inputSchema: { mine: z.boolean().optional() },
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    annotations: { title: "List templates", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, handle(async ({ mine }) => ctx.api.get(withQuery("/api/templates", { mine: mine ? 1 : undefined }))));
 
   server.registerTool("template_show", {
     title: "Show template",
     description: "Read a template's services, addons and required variables before deployment. Pass the ID or slug returned by template_list.",
     inputSchema: { template: z.string().min(1) },
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    annotations: { title: "Show template", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, handle(async ({ template }) => ctx.api.get(`/api/templates/${encodeURIComponent(template)}`)));
 
   server.registerTool("template_deploy", {
@@ -28,7 +28,7 @@ export function registerTemplateTools(server: McpServer, ctx: ToolContext) {
       workspaceId: z.string().min(1),
       placeholderValues: z.record(z.string(), z.string()).optional(),
     },
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    annotations: { title: "Deploy template", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   }, async ({ template, projectName, workspaceId, placeholderValues }) => {
     try {
       const result = await ctx.api.post<{ errors?: unknown[] }>(`/api/templates/${encodeURIComponent(template)}/deploy`, {

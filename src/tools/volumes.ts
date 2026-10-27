@@ -59,7 +59,7 @@ export function registerVolumeTools(server: McpServer, ctx: ToolContext) {
         project: z.string().min(1).describe("Project name, slug, or ID"),
         service: z.string().min(1).optional().describe("An app name or ID: list its volume instead"),
       },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List volumes", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -86,7 +86,7 @@ export function registerVolumeTools(server: McpServer, ctx: ToolContext) {
         service: z.string().min(1).optional().describe("App name or ID to attach the volume to"),
         mountPath: z.string().regex(/^\//).optional().describe("With service: absolute path, default /data"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Create volume", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, name, sizeGb, region, service, mountPath }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -124,7 +124,7 @@ export function registerVolumeTools(server: McpServer, ctx: ToolContext) {
       // only risky case (shrinking an older volume below its usage) is refused
       // server-side by the 10%-free guard. Matches the repo convention of
       // reserving destructiveHint/confirm for tools that remove things.
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Resize volume", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, volume, sizeGb }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -147,7 +147,7 @@ export function registerVolumeTools(server: McpServer, ctx: ToolContext) {
         service: z.string().min(1).optional().describe("The app the volume is attached to, to delete an app's volume"),
         confirm: z.literal(true).describe("Set only after the user approves deleting this volume and its files"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Delete volume", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, volume, service }) => {
       const proj = await resolveProject(ctx.api, project);

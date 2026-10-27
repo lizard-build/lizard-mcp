@@ -21,7 +21,7 @@ export function registerLogsTools(server: McpServer, ctx: ToolContext) {
         build: z.boolean().optional().describe("Fetch build logs instead of runtime logs"),
         buildId: z.string().optional().describe("Specific build ID; defaults to the most recent build"),
       },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Tail logs", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, limit, level, build, buildId }) => {
       const proj = await resolveProject(ctx.api, project);

@@ -16,7 +16,7 @@ export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
         service: z.string().min(1).optional().describe("Omit for project-level live metrics"),
         range: z.enum(["1h", "6h", "24h", "7d", "14d", "30d"]).optional().default("24h"),
       },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Get metrics", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, range }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -51,7 +51,7 @@ export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
       inputSchema: {
         workspaceId: z.string().optional().describe("Read the plan of this workspace's owner instead of your own"),
       },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Get plan and billing status", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ workspaceId }) => {
       const sub = await ctx.api.get<Record<string, unknown>>(withQuery("/api/billing/subscription", { workspaceId }));
@@ -69,7 +69,7 @@ export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
       title: "Get billing summary",
       description: "Use this when the user wants a cost/billing summary for a Lizard workspace, including current usage and live spend.",
       inputSchema: { workspaceId: z.string() },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Get billing summary", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ workspaceId }) => {
       const [summary, live] = await Promise.all([

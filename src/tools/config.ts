@@ -21,7 +21,7 @@ export function registerConfigTools(server: McpServer, ctx: ToolContext) {
       // Passed through verbatim to a bulk endpoint capable of overwriting or
       // removing fields not listed, so treated as destructive/non-idempotent
       // even though most individual calls are benign merges.
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Apply bulk config", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, config }) => {
       const proj = await resolveProject(ctx.api, project);

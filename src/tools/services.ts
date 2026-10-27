@@ -91,7 +91,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       title: "List services",
       description: "Use this when the user wants to see all apps and addons in a Lizard project.",
       inputSchema: { project: z.string().min(1).describe("Project name, slug, or ID") },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List services", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -106,7 +106,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when the user wants details about a single Lizard service (app or addon) — status, config, resource limits.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Show service details", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -133,7 +133,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
         envVars: z.record(z.string(), z.string()).optional(),
         skipInitialDeploy: z.boolean().optional().describe("With repoUrl: attach the repo but skip the initial build"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Create service", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, name, region, repoUrl, containerPort, envVars, skipInitialDeploy }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -156,7 +156,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
         region: z.string().describe("Deployment region code — call region_list first if unsure of valid values, do not guess"),
         name: z.string().optional().describe("Stable reference key for ${{name.KEY}} templates"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Create addon", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, type, region, name }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -173,7 +173,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       title: "Rename service",
       description: "Use this when the user wants to rename an existing Lizard service.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1), name: z.string().describe("New name") },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Rename service", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, name }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -199,7 +199,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
         service: z.string().min(1),
         confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Delete service", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -222,7 +222,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
           project: z.string().min(1).describe("Project name, slug, or ID"),
           service: z.string().min(1).describe("App or database name or ID"),
         },
-        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        annotations: { title: op === "pause" ? "Pause service" : "Resume service", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       },
       handle(async ({ project, service }) => {
         const proj = await resolveProject(ctx.api, project);
@@ -251,7 +251,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
         project: z.string().min(1).describe("Project name, slug, or ID"),
         service: z.string().min(1).describe("App or database name or ID"),
       },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Serverless status", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -273,7 +273,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
         enabled: z.boolean().describe("true: sleep when idle; false: always on"),
         idleMinutes: z.number().int().min(5).max(1440).optional().describe("Minutes without traffic before it sleeps"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Turn serverless on or off", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, enabled, idleMinutes }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -290,7 +290,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when the user wants to change replica count, CPU, memory, or storage limits for a Lizard service.",
       inputSchema: serviceScaleShape,
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Scale service", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, replicas, cpu, memory, storage }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -338,7 +338,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       title: "Get container port",
       description: "Use this when the user wants to know which container port a Lizard app is listening on.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Get container port", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -356,7 +356,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       title: "Set container port",
       description: "Use this when the user wants to change the container port a Lizard app listens on.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1), containerPort: z.number().int() },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Set container port", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, containerPort }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -390,7 +390,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
         containerPort: z.number().int().optional(),
         force: z.boolean().optional().describe("Skip the optimistic-concurrency revision check"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Set service build/deploy config", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, force, ...fields }) => {
       const proj = await resolveProject(ctx.api, project);

@@ -280,8 +280,6 @@ async function services() {
     }
     note("the app sees the secret and the Redis reference", body.includes('"audit":"yes"') && body.includes('"redis":true'), body.slice(0, 160));
   }
-  await step("ssh_exec", { project: S.project, service: svc, cmd: "echo ok", confirm: true }, "says shell access is off and points to sandboxes", { error: /turned off on Lizard/ });
-  await step("ssh_exec", { project: S.project, service: svc, cmd: "ls" }, "refuses without confirm", { error: true });
 
   // Config, deploy, scale
   await step("service_get_port", { project: S.project, service: svc }, "reads the port", { check: (r) => (r.sc?.containerPort ? undefined : "no port") });

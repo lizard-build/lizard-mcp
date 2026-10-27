@@ -22,7 +22,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
         service: z.string().min(1).optional().describe("Omit for project-wide (global) secrets"),
         reveal: z.boolean().optional().default(false),
       },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List secrets", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, reveal }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -46,7 +46,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
         service: z.string().min(1).optional().describe("Omit to set project-wide (global) secrets"),
         values: z.record(z.string(), z.string()).describe("Key-value pairs to set"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Set secrets", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, values }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -70,7 +70,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
         keys: z.array(z.string()),
         confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Delete secrets", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service, keys }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -101,7 +101,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when the user wants to see the available reference-variable templates (like postgres connection strings) they can inject into another service's secrets.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1).optional() },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List variable references", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);

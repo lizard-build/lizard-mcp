@@ -8,7 +8,7 @@ const MAX_TEXT_BYTES = 65536;
 const repo = z.string().regex(/^[^/\s]+\/[^/\s]+$/).describe('Lizard Git repository as "owner/name" (repo_list)');
 const number = z.number().int().min(1);
 const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
-const change = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
+const change = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false };
 
 /** The last `max` bytes of a log, where the error usually is. */
 export function tail(text: string, max = MAX_TEXT_BYTES): { text: string; truncated: boolean } {
@@ -32,7 +32,7 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
       "List Lizard Git repositories (lizard.build/git — Lizard's own git hosting, not GitHub): by default the user's own and the ones they collaborate on. " +
       "owner narrows to one owner's; query searches names and descriptions. Lizard Git refuses API keys with scopes.",
     inputSchema: { owner: z.string().min(1).optional(), query: z.string().min(1).optional() },
-    annotations: readOnly,
+    annotations: { title: "List Lizard Git repositories", ...readOnly },
   }, handle(async ({ owner, query }) => git.get(qs("/api/repos", { owner, member: owner ? undefined : await myLogin(), q: query }))));
 
   server.registerTool("repo_create", {
@@ -48,7 +48,7 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
       defaultBranch: z.string().min(1).optional().describe("Default main"),
       workspace: z.string().min(1).optional().describe("Workspace slug"),
     },
-    annotations: change,
+    annotations: { title: "Create Lizard Git repository", ...change },
   }, handle(async (args) => {
     const r = await git.post<{ owner: string; name: string }>("/api/repos", args);
     return { ...r, repo: `${r.owner}/${r.name}`, url: `${gitURL()}/${r.owner}/${r.name}` };
@@ -57,14 +57,14 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
   server.registerTool("repo_show", {
     title: "Show Lizard Git repository",
     description: "Read a Lizard Git repository's details: default branch, visibility, the user's role, whether it is empty, branch and open issue/pull request counts.",
-    inputSchema: { repo }, annotations: readOnly,
+    inputSchema: { repo }, annotations: { title: "Show Lizard Git repository", ...readOnly },
   }, handle(async ({ repo: r }) => git.get(repoPath(r))));
 
   server.registerTool("repo_delete", {
     title: "Delete Lizard Git repository",
     description: "Permanently delete a Lizard Git repository with its branches, issues, pull requests and CI runs. Services deploying from it stop getting new deploys. Owner or admin only. Get the user's approval first; this cannot be undone.",
     inputSchema: { repo, confirm: z.literal(true) },
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+    annotations: { title: "Delete Lizard Git repository", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   }, handle(async ({ repo: r }) => {
     await git.delete(repoPath(r));
     return { repo: r, status: "deleted" };
@@ -72,9 +72,9 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("repo_files", {
     title: "List repository files",
-    description: "List a folder of a Lizard Git repository (path, default the root) at a ref (branch, tag or commit; default branch if omitted). recursive: true lists every file path instead.",
+    description: "List a folder of a Lizard Git repository (path, default the root) at a ref (branch, tag or commit; default branch if omitted). recursive: true lists every file path instead. Uses the Lizard API; docs: https://lizard.build/docs/.",
     inputSchema: { repo, path: z.string().optional(), ref: z.string().min(1).optional(), recursive: z.boolean().optional() },
-    annotations: readOnly,
+    annotations: { title: "List repository files", ...readOnly },
   }, handle(async ({ repo: r, path, ref, recursive }) => {
     if (recursive) {
       const files = await git.get<string[]>(qs(`${repoPath(r)}/files`, { ref }));
@@ -86,9 +86,9 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("repo_read_file", {
     title: "Read repository file",
-    description: "Read a text file from a Lizard Git repository at a ref (default branch if omitted), up to 64 KiB. Binary or larger files return their size without content.",
+    description: "Read a text file from a Lizard Git repository at a ref (default branch if omitted), up to 64 KiB. Binary or larger files return their size without content. Uses the Lizard API; docs: https://lizard.build/docs/.",
     inputSchema: { repo, path: z.string().min(1), ref: z.string().min(1).optional() },
-    annotations: readOnly,
+    annotations: { title: "Read repository file", ...readOnly },
   }, handle(async ({ repo: r, path, ref }) => {
     const blob = await git.get<{ content?: string; size: number; binary?: boolean; tooLarge?: boolean; [k: string]: unknown }>(qs(`${repoPath(r)}/blob`, { path, ref }));
     if (blob.content !== undefined && Buffer.byteLength(blob.content) > MAX_TEXT_BYTES) {
@@ -102,7 +102,7 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
     description:
       "Commit changes to a branch of a Lizard Git repository, made on the server (no clone needed): each file is new text content, delete: true, or a rename with moveFrom. " +
       "createFrom makes the branch from that ref when it doesn't exist yet. With expect (the commit you based the change on), a branch that moved meanwhile is merged by the server and only a real conflict fails (409, with the paths). " +
-      "Pass an idempotencyKey to make a retry safe. A commit to a branch a service deploys from starts a deploy, and to a branch with .lizard/workflows starts CI.",
+      "Pass an idempotencyKey to make a retry safe. A commit to a branch a service deploys from starts a deploy, and to a branch with .lizard/workflows starts CI. Uses the Lizard Git API; docs: https://lizard.build/docs/.",
     inputSchema: {
       repo,
       branch: z.string().min(1),
@@ -117,7 +117,7 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
       createFrom: z.string().min(1).optional(),
       idempotencyKey: z.string().min(1).max(200).optional(),
     },
-    annotations: change,
+    annotations: { title: "Commit files to Lizard Git", ...change },
   }, handle(async ({ repo: r, idempotencyKey, ...body }) => {
     for (const f of body.files) {
       if (!f.delete && f.content === undefined && !f.moveFrom) throw new Error(`${f.path}: pass content, delete: true or moveFrom.`);
@@ -127,16 +127,16 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("repo_commits", {
     title: "List repository commits",
-    description: "List recent commits of a Lizard Git repository at a ref (default branch if omitted), optionally only those touching path.",
+    description: "List recent commits of a Lizard Git repository at a ref (default branch if omitted), optionally only those touching path. Uses the Lizard API; docs: https://lizard.build/docs/.",
     inputSchema: { repo, ref: z.string().min(1).optional(), path: z.string().min(1).optional(), page: z.number().int().min(1).optional() },
-    annotations: readOnly,
+    annotations: { title: "List repository commits", ...readOnly },
   }, handle(async ({ repo: r, ...opts }) => git.get(qs(`${repoPath(r)}/commits`, opts))));
 
   server.registerTool("pr_list", {
     title: "List pull requests",
     description: "List pull requests of a Lizard Git repository (state open by default; closed, all).",
     inputSchema: { repo, state: z.enum(["open", "closed", "all"]).optional(), query: z.string().min(1).optional() },
-    annotations: readOnly,
+    annotations: { title: "List pull requests", ...readOnly },
   }, handle(async ({ repo: r, state, query }) => git.get(qs(`${repoPath(r)}/issues`, { state, q: query, pulls: 1 }))));
 
   server.registerTool("pr_create", {
@@ -146,13 +146,13 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
       repo, title: z.string().min(1), head: z.string().min(1), base: z.string().min(1).optional(),
       body: z.string().optional(), draft: z.boolean().optional(),
     },
-    annotations: change,
+    annotations: { title: "Open pull request", ...change },
   }, handle(async ({ repo: r, ...opts }) => git.post(`${repoPath(r)}/issues`, opts)));
 
   server.registerTool("pr_show", {
     title: "Show pull request",
     description: "Read a Lizard Git pull request with its conversation, head commit, whether it can merge and what branch rules still need (approvals, checks).",
-    inputSchema: { repo, number }, annotations: readOnly,
+    inputSchema: { repo, number }, annotations: { title: "Show pull request", ...readOnly },
   }, handle(async ({ repo: r, number: n }) => git.get(`${repoPath(r)}/issues/${n}`)));
 
   server.registerTool("pr_merge", {
@@ -164,7 +164,7 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
       message: z.string().min(1).optional(),
       deleteBranch: z.boolean().optional(),
     },
-    annotations: change,
+    annotations: { title: "Merge pull request", ...change },
   }, handle(async ({ repo: r, number: n, method, message, deleteBranch }) =>
     git.post(`${repoPath(r)}/pulls/${n}/merge`, { method: method ?? "merge", message, deleteBranch: !!deleteBranch })));
 
@@ -175,14 +175,14 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
       repo, branch: z.string().min(1).optional(), pr: number.optional(),
       status: z.string().min(1).optional().describe("e.g. queued, running, success, failure, cancelled"),
     },
-    annotations: readOnly,
+    annotations: { title: "List CI runs", ...readOnly },
   }, handle(async ({ repo: r, branch, pr, status }) => git.get(qs(`${repoPath(r)}/actions/runs`, { branch, pr, status }))));
 
   server.registerTool("ci_run_show", {
     title: "Show CI run",
     description: "Read one CI run of a Lizard Git repository with its jobs and steps. logs: true adds each job's log (the last 64 KiB of each, where failures usually are).",
     inputSchema: { repo, number, logs: z.boolean().optional() },
-    annotations: readOnly,
+    annotations: { title: "Show CI run", ...readOnly },
   }, handle(async ({ repo: r, number: n, logs }) => {
     const run = await git.get<{ jobs?: Array<{ id: number; name: string }>; [k: string]: unknown }>(`${repoPath(r)}/actions/runs/${n}`);
     if (!logs) return run;

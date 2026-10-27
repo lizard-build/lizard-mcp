@@ -20,7 +20,7 @@ const path = z.string().min(1).refine(value => !value.includes("\0"), "Path must
 const lifetime = z.number().int().min(MIN_LIFETIME_MS).max(MAX_LIFETIME_MS);
 const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const write = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true };
-const change = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
+const change = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false };
 
 async function request<T>(ctx: ToolContext, route: string, method = "GET", body?: unknown, signal?: AbortSignal, text = false): Promise<T> {
   if (!ctx.accessToken) throw new Error(NO_TOKEN_MESSAGE);
@@ -102,7 +102,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
   server.registerTool("sandbox_list", {
     title: "List sandboxes",
     description: "List Lizard Sandboxes in an explicit project. Use the returned IDs with sandbox tools; these resources are separate from app services.",
-    inputSchema: { project: z.string().min(1) }, annotations: readOnly,
+    inputSchema: { project: z.string().min(1) }, annotations: { title: "List sandboxes", ...readOnly },
   }, handle(async ({ project }) => {
     const resolved = await resolveProject(ctx.api, project);
     return ctx.api.get(`/api/projects/${encodeURIComponent(resolved.id)}/sandboxes`);
@@ -111,7 +111,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
   server.registerTool("sandbox_show", {
     title: "Show sandbox",
     description: "Read a sandbox's status (running, pausing, paused, resuming, ...), project, template, size and expiry. The platform checks the current user's access to this ID.",
-    inputSchema: { sandboxId: id }, annotations: readOnly,
+    inputSchema: { sandboxId: id }, annotations: { title: "Show sandbox", ...readOnly },
   }, handle(async ({ sandboxId }) => {
     return ctx.api.get(route(sandboxId));
   }));
@@ -133,7 +133,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project (volume_list)"),
       snapshotId: snapshotId.optional(),
       confirm: z.literal(true),
-    }, annotations: { ...write, destructiveHint: false, openWorldHint: false },
+    }, annotations: { title: "Create sandbox", ...write, openWorldHint: false },
   }, handle(async ({ project, lifetimeMs, template, size, region, volume, snapshotId: fromSnapshot }, extra) => {
     if (fromSnapshot && size) throw new Error("size can't be combined with snapshotId: a snapshot starts at the size it was taken at.");
     extra.signal.throwIfAborted();
@@ -177,7 +177,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       timeoutMs: z.number().int().min(1000).max(120000).default(60000),
       envs: z.record(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/), z.string()).optional().describe("Environment variables for this command only"),
       confirm: z.literal(true).describe("User approved the command and loss of sandbox files if cancellation, timeout, or request failure requires cleanup"),
-    }, annotations: write,
+    }, annotations: { title: "Run sandbox command", ...write },
   }, handle(async ({ sandboxId, command, cwd, timeoutMs, envs }, extra) => {
     extra.signal.throwIfAborted();
     return execInSandbox(ctx, sandboxId, command, posix.resolve("/workspace", cwd), timeoutMs, extra.signal, envs);
@@ -185,8 +185,8 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_read_file", {
     title: "Read sandbox text file",
-    description: "Read up to 64 KiB of UTF-8 text from a sandbox. Relative paths start at /workspace. Paths refer to the remote sandbox, never the MCP server's files.",
-    inputSchema: { sandboxId: id, path }, annotations: readOnly,
+    description: "Read up to 64 KiB of UTF-8 text from a sandbox. Relative paths start at /workspace. Paths refer to the remote sandbox, never the MCP server's files. Uses the Lizard API; docs: https://lizard.build/docs/.",
+    inputSchema: { sandboxId: id, path }, annotations: { title: "Read sandbox text file", ...readOnly },
   }, handle(async ({ sandboxId, path: file }) => {
     const resolved = posix.resolve("/workspace", file);
     const query = new URLSearchParams({ path: resolved });
@@ -199,12 +199,12 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_write_file", {
     title: "Write sandbox text file",
-    description: "Write up to 64 KiB of UTF-8 text to a sandbox, replacing an existing file. Requires the user's approval. Relative paths start at /workspace. Does not write to the MCP server's filesystem.",
+    description: "Write up to 64 KiB of UTF-8 text to a sandbox, replacing an existing file. Requires the user's approval. Relative paths start at /workspace. Does not write to the MCP server's filesystem. Uses the Lizard API; docs: https://lizard.build/docs/.",
     inputSchema: {
       sandboxId: id, path,
       content: z.string().refine(value => Buffer.byteLength(value) <= MAX_TEXT_BYTES, "Content exceeds 64 KiB"),
       confirm: z.literal(true),
-    }, annotations: { ...write, idempotentHint: true, openWorldHint: false },
+    }, annotations: { title: "Write sandbox text file", ...write, idempotentHint: true, openWorldHint: false },
   }, handle(async ({ sandboxId, path: file, content }, extra) => {
     extra.signal.throwIfAborted();
     const resolved = posix.resolve("/workspace", file);
@@ -214,8 +214,8 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_list_files", {
     title: "List sandbox files",
-    description: "List one directory inside a sandbox: name, path, type and size of each entry. Relative paths start at /workspace.",
-    inputSchema: { sandboxId: id, path: path.default("/workspace") }, annotations: readOnly,
+    description: "List one directory inside a sandbox: name, path, type and size of each entry. Relative paths start at /workspace. Uses the Lizard API; docs: https://lizard.build/docs/.",
+    inputSchema: { sandboxId: id, path: path.default("/workspace") }, annotations: { title: "List sandbox files", ...readOnly },
   }, handle(async ({ sandboxId, path: dir }) => {
     const resolved = posix.resolve("/workspace", dir);
     const entries = await ctx.api.get(withQuery(`${route(sandboxId)}/files/list`, { path: resolved }));
@@ -226,7 +226,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     title: "Delete sandbox",
     description: "Permanently destroy one sandbox and all its files (an attached volume stays). Get the user's approval before calling. Use this to clean up a sandbox created for a task. Does not delete its project or any app services.",
     inputSchema: { sandboxId: id, confirm: z.literal(true) },
-    annotations: { ...write, idempotentHint: true, openWorldHint: false },
+    annotations: { title: "Delete sandbox", ...write, idempotentHint: true, openWorldHint: false },
   }, handle(async ({ sandboxId }, extra) => {
     extra.signal.throwIfAborted();
     return { sandboxId, deleted: await destroy(ctx, sandboxId) };
@@ -236,7 +236,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     title: "Set sandbox lifetime",
     description: "Change how long a sandbox lives from now: it stops and loses its files (except an attached volume) when the time runs out. Use it to keep a sandbox the user still needs, or to end one sooner. 60,000 ms to 86,400,000 ms (a day).",
     inputSchema: { sandboxId: id, lifetimeMs: lifetime },
-    annotations: { ...change, idempotentHint: true },
+    annotations: { title: "Set sandbox lifetime", ...change, idempotentHint: true },
   }, handle(async ({ sandboxId, lifetimeMs }) => ctx.api.post(`${route(sandboxId)}/timeout`, { timeoutMs: lifetimeMs })));
 
   for (const op of ["pause", "resume"] as const) {
@@ -246,7 +246,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
         ? "Save a running sandbox's memory, processes and files, and stop it. A paused sandbox costs only its storage and does not count against the running-sandbox limit. Waits up to 2 minutes for it to finish pausing. Undo with sandbox_resume."
         : "Start a paused sandbox again, where it left off: same memory, processes and files. Waits up to 2 minutes for it to run. If resuming fails, the saved state is kept; try again.",
       inputSchema: { sandboxId: id },
-      annotations: { ...change, idempotentHint: true },
+      annotations: { title: op === "pause" ? "Pause sandbox" : "Resume sandbox", ...change, idempotentHint: true },
     }, handle(async ({ sandboxId }) => {
       const queued = await ctx.api.post<{ status?: string }>(`${route(sandboxId)}/${op}`, {});
       const target = op === "pause" ? "paused" : "running";
@@ -271,7 +271,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       name: z.string().min(1).max(100).describe("A name for the snapshot"),
       scope: z.enum(["user", "workspace", "project"]).optional(),
     },
-    annotations: change,
+    annotations: { title: "Snapshot sandbox", ...change },
   }, handle(async ({ sandboxId, name, scope }) => {
     const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(scope ? { scope } : {}) });
     return waitFor(
@@ -285,7 +285,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
   server.registerTool("sandbox_snapshot_list", {
     title: "List sandbox snapshots",
     description: "List the saved sandbox snapshots of a project: ID, name, template, region, size, scope and status.",
-    inputSchema: { project: z.string().min(1) }, annotations: readOnly,
+    inputSchema: { project: z.string().min(1) }, annotations: { title: "List sandbox snapshots", ...readOnly },
   }, handle(async ({ project }) => {
     const resolved = await resolveProject(ctx.api, project);
     return ctx.api.get(`/api/projects/${encodeURIComponent(resolved.id)}/snapshots`);
@@ -295,7 +295,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     title: "Delete sandbox snapshot",
     description: "Permanently delete a saved sandbox snapshot. Sandboxes already started from it keep running. Get the user's approval first.",
     inputSchema: { snapshotId, confirm: z.literal(true) },
-    annotations: { ...write, idempotentHint: true, openWorldHint: false },
+    annotations: { title: "Delete sandbox snapshot", ...write, idempotentHint: true, openWorldHint: false },
   }, handle(async ({ snapshotId: snap }) => {
     await ctx.api.delete(`/api/sandbox-snapshots/${encodeURIComponent(snap)}`);
     return { snapshotId: snap, deleted: true };
@@ -313,7 +313,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       lifetimeMs: lifetime.optional(),
       confirm: z.literal(true),
     },
-    annotations: { ...change, openWorldHint: false },
+    annotations: { title: "Fork sandbox", ...change, openWorldHint: false },
   }, handle(async ({ sandboxId, count, lifetimeMs }) => {
     const results = await ctx.api.post<Array<{ sandbox?: SandboxRecord; error?: string }>>(`${route(sandboxId)}/fork`, {
       count, ...(lifetimeMs ? { timeoutMs: lifetimeMs } : {}),
@@ -328,14 +328,14 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     title: "Expose sandbox port",
     description: "Give a port inside a running sandbox an HTTPS URL, e.g. to show the user a web app the sandbox runs (it must listen on 0.0.0.0). The port stays private: the returned url carries an access token, so a browser opens it once and then keeps a cookie; other clients send accessToken in the X-Lizard-Access-Token header. Anyone with the url or token can reach the port, so share it only with the user. Remove it with sandbox_unexpose_port.",
     inputSchema: { sandboxId: id, port: z.number().int().min(1).max(65535) },
-    annotations: { ...change, idempotentHint: true, openWorldHint: true },
+    annotations: { title: "Expose sandbox port", ...change, idempotentHint: true, openWorldHint: true },
   }, handle(async ({ sandboxId, port }) => ctx.api.post(`${route(sandboxId)}/expose/${port}`)));
 
   server.registerTool("sandbox_unexpose_port", {
     title: "Remove sandbox port URL",
     description: "Remove the HTTPS URL of a sandbox port; its access token stops working. The process inside keeps running.",
     inputSchema: { sandboxId: id, port: z.number().int().min(1).max(65535) },
-    annotations: { ...change, idempotentHint: true },
+    annotations: { title: "Remove sandbox port URL", ...change, idempotentHint: true },
   }, handle(async ({ sandboxId, port }) => {
     await ctx.api.delete(`${route(sandboxId)}/expose/${port}`);
     return { sandboxId, port, status: "unexposed" };

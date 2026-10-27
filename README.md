@@ -38,6 +38,12 @@ claude mcp add --transport http lizard https://employ-woman-g1q2.us-east-1.onliz
   --header "Authorization: Bearer liz_your_key"
 ```
 
+### Cline
+
+Follow [the Cline installation guide](llms-install.md) to connect the hosted
+server with a bearer token. Use Cline's `streamableHttp` transport, keep tool
+approval on, then check the connection with `whoami`. No local build is needed.
+
 ### Cursor and other clients configured by JSON
 
 ```json

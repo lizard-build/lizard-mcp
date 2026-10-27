@@ -11,7 +11,7 @@ export function registerConfigTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Apply bulk config",
       description:
-        "Use this when the user wants to apply a bulk, config-as-code style configuration to a Lizard project in one request (multiple services/addons/secrets at once), rather than changing one field at a time. The config body is passed through verbatim and can overwrite or remove existing fields — prefer the narrower service.*/secrets.* tools for single-field changes.",
+        "Apply a configuration to a Lizard project in one request (services, addons and secrets). The config body is passed through verbatim and can overwrite or remove existing fields. Uses the Lizard API config:apply endpoint; docs: https://lizard.build/docs/.",
       inputSchema: {
         project: z.string().min(1),
         config: z

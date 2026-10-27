@@ -110,9 +110,20 @@ describe('real MCP transports against a local REST fixture', () => {
     const result = await invoke('sandbox_create', { project: 'demo', confirm: true });
     expect(result.isError).not.toBe(true);
     expect(writes()).toEqual([{ method: 'POST', url: '/api/sandboxes', auth: 'Bearer liz_fixture', body: {
-      template: 'interpreter', size: 'small', timeoutMs: 300000, projectId: 'p1', metadata: { integration: 'lizard-mcp' },
+      template: 'interpreter', size: 'small', timeoutMs: 300000, projectId: 'p1', region: 'us-east-1', metadata: { integration: 'lizard-mcp' },
     } }]);
     expect(texts(result)).not.toContain('liz_fixture');
+  });
+  it('asks again without a region when new sandboxes in the default one are paused', async () => {
+    const paused = { status: 503, body: { error: 'New sandboxes are not available in US East (Virginia).', code: 'region_unavailable' } };
+    let n = 0;
+    reply = () => (n++ === 0 ? paused : { body: { sandboxId: 's1' } });
+    expect((await invoke('sandbox_create', { project: 'demo', confirm: true })).isError).not.toBe(true);
+    expect(writes().map((w) => w.body.region)).toEqual(['us-east-1', undefined]);
+    calls = [];
+    reply = () => paused;
+    expect((await invoke('sandbox_create', { project: 'demo', region: 'us-east-1', confirm: true })).isError).toBe(true);
+    expect(writes()).toHaveLength(1);
   });
   it('keeps sandbox credentials separate for concurrent MCP clients', async () => {
     reply = call => ({ body: { sandboxId: call.url.split('/').at(-1) } });

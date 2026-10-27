@@ -12,6 +12,8 @@ const MIN_LIFETIME_MS = 60_000;
 const MAX_LIFETIME_MS = 86_400_000;
 /** Matches lizard-cli's MAX_FORK_COUNT. */
 const MAX_FORK_COUNT = 100;
+/** Where sandbox_create starts a sandbox that names no region, volume or snapshot. Matches lizard-cli. */
+const DEFAULT_SANDBOX_REGION = "us-east-1";
 const id = z.string().min(1).max(128).regex(/^[a-zA-Z0-9_-]+$/).describe("Exact sandbox ID from sandbox_create or sandbox_list");
 const snapshotId = z.string().min(1).max(128).regex(/^[a-zA-Z0-9_-]+$/).describe("Snapshot ID from sandbox_snapshot or sandbox_snapshot_list");
 const path = z.string().min(1).refine(value => !value.includes("\0"), "Path must not contain NUL bytes");
@@ -127,7 +129,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       lifetimeMs: lifetime.default(300000).describe("Lifetime in ms, 60,000 to 86,400,000 (a day); extend later with sandbox_set_timeout"),
       template: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional().describe("Template name; default interpreter"),
       size: z.enum(["small", "medium", "large"]).optional().describe("Default small; not with snapshotId"),
-      region: z.string().min(1).optional().describe("Region code (region_list); default the platform's choice"),
+      region: z.string().min(1).optional().describe(`Region code (region_list); default ${DEFAULT_SANDBOX_REGION}, or the volume's or snapshot's region`),
       volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project (volume_list)"),
       snapshotId: snapshotId.optional(),
       confirm: z.literal(true),
@@ -137,13 +139,25 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     extra.signal.throwIfAborted();
     const resolved = await resolveProject(ctx.api, project);
     extra.signal.throwIfAborted();
-    const body = fromSnapshot
+    // No region: us-east-1. A volume or a snapshot exists in one region only, so with either
+    // the server places the sandbox there instead.
+    const defaultRegion = !region && !volume && !fromSnapshot;
+    const body = (sendRegion: string | undefined) => fromSnapshot
       ? { snapshotId: fromSnapshot, projectId: resolved.id, timeoutMs: lifetimeMs, region, ...(volume ? volumeRef(volume) : {}), metadata: { integration: "lizard-mcp" } }
       : {
           template: template ?? "interpreter", projectId: resolved.id, size: size ?? "small", timeoutMs: lifetimeMs,
-          ...(region ? { region } : {}), ...(volume ? volumeRef(volume) : {}), metadata: { integration: "lizard-mcp" },
+          ...(sendRegion ? { region: sendRegion } : {}), ...(volume ? volumeRef(volume) : {}), metadata: { integration: "lizard-mcp" },
         };
-    const sandbox = await ctx.api.post<SandboxRecord>("/api/sandboxes", body);
+    let sandbox: SandboxRecord;
+    try {
+      sandbox = await ctx.api.post<SandboxRecord>("/api/sandboxes", body(region ?? (defaultRegion ? DEFAULT_SANDBOX_REGION : undefined)));
+    } catch (error) {
+      // New sandboxes paused in the default region: ask again without one, and the platform
+      // picks an open region. A region the caller named is never swapped for another.
+      if (!defaultRegion || !(error instanceof APIError) || error.code !== "region_unavailable") throw error;
+      extra.signal.throwIfAborted();
+      sandbox = await ctx.api.post<SandboxRecord>("/api/sandboxes", body(undefined));
+    }
     const sandboxId = sandbox.sandboxId ?? sandbox.id!;
     if (extra.signal.aborted) {
       await destroy(ctx, sandboxId);

@@ -141,13 +141,14 @@ key.
 | Volumes | `volume_list`, `volume_create`, `volume_resize`, `volume_delete` |
 | GitHub connection | `git_connect`, `git_checkout`, `git_status` |
 | Lizard Git | `repo_list`, `repo_create`, `repo_show`, `repo_delete`, `repo_files`, `repo_read_file`, `repo_commit`, `repo_commits`, `pr_list`, `pr_create`, `pr_show`, `pr_merge`, `ci_run_list`, `ci_run_show` |
-| Shell | `ssh_exec` |
 | Sandboxes | `sandbox_list`, `sandbox_show`, `sandbox_create`, `sandbox_exec`, `sandbox_read_file`, `sandbox_write_file`, `sandbox_list_files`, `sandbox_delete`, `sandbox_set_timeout`, `sandbox_pause`, `sandbox_resume`, `sandbox_snapshot`, `sandbox_snapshot_list`, `sandbox_snapshot_delete`, `sandbox_fork`, `sandbox_expose_port`, `sandbox_unexpose_port` |
 | Config as code | `config_apply` |
 
 Tool names use `snake_case` (not the MCP spec's permitted dots) to match OpenAI's function-name pattern `^[a-zA-Z0-9_-]{1,64}$`, which some ChatGPT/Codex surfaces enforce directly.
 
-Destructive tools — `project_delete`, `workspace_delete`, `service_delete`, `secrets_delete`, `domain_delete`, `volume_delete`, `sandbox_delete`, `sandbox_snapshot_delete`, `repo_delete`, `ssh_exec`, and `domain_dns_update` with `remove` — require an explicit confirmation argument, so a client cannot delete anything or run arbitrary commands by accident.
+Every tool includes a title in both `title` and `annotations.title`. Read tools set `readOnlyHint: true`; all write tools set `destructiveHint: true` so clients can ask before changing resources. Shell access to app services is unavailable, so the server exposes no service-shell tool. Use `sandbox_exec` to run commands in Lizard Sandboxes.
+
+Destructive tools — `project_delete`, `workspace_delete`, `service_delete`, `secrets_delete`, `domain_delete`, `volume_delete`, `sandbox_delete`, `sandbox_snapshot_delete`, `repo_delete`, and `domain_dns_update` with `remove` — require an explicit confirmation argument, so a client cannot delete anything or run arbitrary commands by accident.
 
 `project_delete` puts the project's services and databases in trash for 3 days, but deletes its sandboxes, their volumes and snapshots at once.
 

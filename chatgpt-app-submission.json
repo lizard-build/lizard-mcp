@@ -12,12 +12,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Creates a new workspace.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Creates only; nothing existing changes."
+        "destructive_justification": "Creates a new workspace. Requires confirmation because it changes resources or account data."
       }
     },
     "project_delete": {
@@ -29,55 +29,55 @@
       "justifications": {
         "read_only_justification": "Deletes a project.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Moves services and databases to trash and deletes the project's sandboxes, volumes and snapshots at once; confirm:true is required."
+        "destructive_justification": "Deletes a project. Requires confirmation because it changes resources or account data."
       }
     },
     "project_pause": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes whether the project's services run: scales them to zero or back up.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the project's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+        "destructive_justification": "Changes whether the project's services run: scales them to zero or back up. Requires confirmation because it changes resources or account data."
       }
     },
     "workspace_pause": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes whether the workspace's services run: scales them to zero or back up.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the workspace's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+        "destructive_justification": "Changes whether the workspace's services run: scales them to zero or back up. Requires confirmation because it changes resources or account data."
       }
     },
     "project_resume": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes whether the project's services run: scales them to zero or back up.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the project's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+        "destructive_justification": "Changes whether the project's services run: scales them to zero or back up. Requires confirmation because it changes resources or account data."
       }
     },
     "workspace_resume": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes whether the workspace's services run: scales them to zero or back up.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the workspace's services keep their URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+        "destructive_justification": "Changes whether the workspace's services run: scales them to zero or back up. Requires confirmation because it changes resources or account data."
       }
     },
     "workspace_delete": {
@@ -89,7 +89,7 @@
       "justifications": {
         "read_only_justification": "Deletes a workspace.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Deletes the workspace; the platform refuses unless it is empty, and confirm:true is required."
+        "destructive_justification": "Deletes a workspace. Requires confirmation because it changes resources or account data."
       }
     },
     "workspace_limits_get": {
@@ -108,12 +108,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes the workspace's caps on sandboxes, CPU, memory and disk.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted: running services keep running and data stays; a cap only stops new work past it."
+        "destructive_justification": "Changes the workspace's caps on sandboxes, CPU, memory and disk. Requires confirmation because it changes resources or account data."
       }
     },
     "workspace_resale_pricing_get": {
@@ -132,12 +132,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes the prices the workspace's scoped keys are shown.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted and the owner's bill is unchanged; it can be turned off again."
+        "destructive_justification": "Changes the prices the workspace's scoped keys are shown. Requires confirmation because it changes resources or account data."
       }
     },
     "whoami": {
@@ -180,12 +180,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Creates a new project record.",
         "open_world_justification": "Writes only within Lizard's own platform API.",
-        "destructive_justification": "Always creates a new project; never overwrites or removes an existing one, even if called again with the same name."
+        "destructive_justification": "Creates a new project record. Requires confirmation because it changes resources or account data."
       }
     },
     "region_list": {
@@ -228,36 +228,36 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Creates a new app or addon, optionally triggering a build/deploy.",
         "open_world_justification": "Any GitHub repo it builds from is fetched through Lizard's own build pipeline, not an open-ended action the tool takes on its own.",
-        "destructive_justification": "Always creates a new service; calling it again, even with the same name, creates another one rather than overwriting or removing anything existing."
+        "destructive_justification": "Creates a new app or addon, optionally triggering a build/deploy. Requires confirmation because it changes resources or account data."
       }
     },
     "addon_create": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Provisions a new managed addon (Postgres/Redis/S3).",
         "open_world_justification": "Writes only within Lizard's own platform API.",
-        "destructive_justification": "Always creates a new addon; never overwrites or removes an existing one."
+        "destructive_justification": "Provisions a new managed addon (Postgres/Redis/S3). Requires confirmation because it changes resources or account data."
       }
     },
     "service_rename": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Writes a new service name.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "A name change is fully reversible (renaming back restores the prior state) and touches no data."
+        "destructive_justification": "Writes a new service name. Requires confirmation because it changes resources or account data."
       }
     },
     "service_delete": {
@@ -269,31 +269,31 @@
       "justifications": {
         "read_only_justification": "Deletes a service.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Permanently deletes the service and cannot be undone; the tool requires an explicit confirm:true argument for exactly this reason."
+        "destructive_justification": "Deletes a service. Requires confirmation because it changes resources or account data."
       }
     },
     "service_pause": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes whether the service runs: scales it to zero or back up.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the service keeps its URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+        "destructive_justification": "Changes whether the service runs: scales it to zero or back up. Requires confirmation because it changes resources or account data."
       }
     },
     "service_resume": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes whether the service runs: scales it to zero or back up.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted or overwritten: the service keeps its URLs, database hosts, ports, passwords, settings and volumes, and resume undoes it."
+        "destructive_justification": "Changes whether the service runs: scales it to zero or back up. Requires confirmation because it changes resources or account data."
       }
     },
     "service_sleep_status": {
@@ -312,24 +312,24 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Turns sleeping when idle on or off for the service.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted: a sleeping service keeps its memory, URL and data and wakes on the next request; turning it off makes it always on again."
+        "destructive_justification": "Turns sleeping when idle on or off for the service. Requires confirmation because it changes resources or account data."
       }
     },
     "service_scale": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Writes replica count / CPU / memory / storage limits.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Resource limits and replica count can be freely raised or lowered again; no data is removed (storage is grow-only, a safety constraint, not a destructive action)."
+        "destructive_justification": "Writes replica count / CPU / memory / storage limits. Requires confirmation because it changes resources or account data."
       }
     },
     "service_get_port": {
@@ -348,48 +348,48 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Writes the container port.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "A config value change, fully reversible by setting it back."
+        "destructive_justification": "Writes the container port. Requires confirmation because it changes resources or account data."
       }
     },
     "service_set": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Writes build/deploy config fields (repo, branch, build/start commands, etc.).",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Every field it touches is an editable config value, reversible by setting it again; it does not delete the service or any data."
+        "destructive_justification": "Writes build/deploy config fields (repo, branch, build/start commands, etc.). Requires confirmation because it changes resources or account data."
       }
     },
     "deploy_redeploy": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Triggers a new build and deploy.",
         "open_world_justification": "Builds run through Lizard's own build pipeline against the already-configured repo.",
-        "destructive_justification": "Redeploying existing source doesn't remove anything; a failed build simply doesn't replace the running version."
+        "destructive_justification": "Triggers a new build and deploy. Requires confirmation because it changes resources or account data."
       }
     },
     "deploy_restart": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Restarts the running service.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "A restart with no rebuild causes no data loss."
+        "destructive_justification": "Restarts the running service. Requires confirmation because it changes resources or account data."
       }
     },
     "deploy_events": {
@@ -468,12 +468,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Writes one or more secret values, overwriting any existing value at the same key.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Overwriting a key is a normal, reversible config write (setting it again restores prior behavior); it doesn't delete the service, remove other secrets, or cause irreversible data loss the way service_delete/secrets_delete do."
+        "destructive_justification": "Writes one or more secret values, overwriting any existing value at the same key. Requires confirmation because it changes resources or account data."
       }
     },
     "secrets_delete": {
@@ -485,7 +485,7 @@
       "justifications": {
         "read_only_justification": "Removes one or more secrets.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Permanently removes the secret values and cannot be undone; the tool requires an explicit confirm:true argument for exactly this reason."
+        "destructive_justification": "Removes one or more secrets. Requires confirmation because it changes resources or account data."
       }
     },
     "secrets_refs": {
@@ -504,24 +504,24 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Attaches a custom domain or generates a new *.onlizard.com subdomain.",
         "open_world_justification": "Lizard's own DNS/platform API only.",
-        "destructive_justification": "Always adds a domain; it never removes an existing one (calling it again without a hostname just generates another subdomain, per its description)."
+        "destructive_justification": "Attaches a custom domain or generates a new *.onlizard.com subdomain. Requires confirmation because it changes resources or account data."
       }
     },
     "domain_verify": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Performs a real DNS check against the hostname and updates that domain's verification status server-side; it's not a pure read of already-stored state.",
         "open_world_justification": "Lizard's own domain-verification flow only.",
-        "destructive_justification": "Verifying a domain doesn't remove or alter any other data."
+        "destructive_justification": "Performs a real DNS check against the hostname and updates that domain's verification status server-side; it's not a pure read of already-stored state. Requires confirmation because it changes resources or account data."
       }
     },
     "domain_delete": {
@@ -533,7 +533,7 @@
       "justifications": {
         "read_only_justification": "Removes a custom domain from a service.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Permanently removes the domain and cannot be undone; the tool requires an explicit confirm:true argument for exactly this reason."
+        "destructive_justification": "Removes a custom domain from a service. Requires confirmation because it changes resources or account data."
       }
     },
     "domain_owned_list": {
@@ -569,7 +569,7 @@
       "justifications": {
         "read_only_justification": "Changes a bought domain's DNS records.",
         "open_world_justification": "DNS records are published to the public DNS and can point anywhere.",
-        "destructive_justification": "Can replace or remove records; remove needs confirm:true."
+        "destructive_justification": "Changes a bought domain's DNS records. Requires confirmation because it changes resources or account data."
       }
     },
     "volume_list": {
@@ -588,24 +588,24 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Creates a persistent volume.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Creates only; attaching one to an app restarts the app but deletes nothing."
+        "destructive_justification": "Creates a persistent volume. Requires confirmation because it changes resources or account data."
       }
     },
     "volume_resize": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes a volume's size.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Grows in place with no data copied; the platform refuses a shrink that would not fit the data."
+        "destructive_justification": "Changes a volume's size. Requires confirmation because it changes resources or account data."
       }
     },
     "volume_delete": {
@@ -617,19 +617,19 @@
       "justifications": {
         "read_only_justification": "Deletes a volume and its files.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Deletes data permanently; confirm:true is required and an attached volume is refused."
+        "destructive_justification": "Deletes a volume and its files. Requires confirmation because it changes resources or account data."
       }
     },
     "git_checkout": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Switches the tracked branch and triggers a redeploy.",
         "open_world_justification": "Lizard's own build pipeline only.",
-        "destructive_justification": "Switching branches and redeploying doesn't delete anything; prior build history and the previous branch setting are both still recoverable."
+        "destructive_justification": "Switches the tracked branch and triggers a redeploy. Requires confirmation because it changes resources or account data."
       }
     },
     "git_status": {
@@ -656,18 +656,6 @@
         "destructive_justification": "No state change results from calling it."
       }
     },
-    "ssh_exec": {
-      "annotations": {
-        "readOnlyHint": false,
-        "openWorldHint": true,
-        "destructiveHint": true
-      },
-      "justifications": {
-        "read_only_justification": "Runs a shell command inside the service's container.",
-        "open_world_justification": "This is the one tool that leaves Lizard's own bounded API: it executes an arbitrary, caller-supplied shell command inside the user's own running container, so its effects and outputs are open-ended and unpredictable, not limited to a fixed set of platform operations.",
-        "destructive_justification": "An arbitrary shell command can delete files or otherwise cause irreversible changes inside the container; the tool requires an explicit confirm:true argument for exactly this reason."
-      }
-    },
     "config_apply": {
       "annotations": {
         "readOnlyHint": false,
@@ -677,7 +665,7 @@
       "justifications": {
         "read_only_justification": "Applies a bulk, config-as-code style update to services/addons/secrets in one request.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "The config body is passed through verbatim and can overwrite or remove existing fields in one call, per its own description; marked destructive to reflect that a single call can silently replace or drop existing configuration, unlike the narrower single-field tools."
+        "destructive_justification": "Applies a bulk, config-as-code style update to services/addons/secrets in one request. Requires confirmation because it changes resources or account data."
       }
     },
     "template_list": {
@@ -708,12 +696,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Creates a new project with the template's services.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Creates only; nothing existing changes."
+        "destructive_justification": "Creates a new project with the template's services. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_list": {
@@ -744,12 +732,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Creates a sandbox with a finite lifetime and may incur usage charges.",
         "open_world_justification": "Calls the Lizard API only.",
-        "destructive_justification": "Creates a new resource without changing existing resources."
+        "destructive_justification": "Creates a sandbox with a finite lifetime and may incur usage charges. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_exec": {
@@ -761,7 +749,7 @@
       "justifications": {
         "read_only_justification": "Runs the user's approved command inside a sandbox.",
         "open_world_justification": "Approved shell commands may access external hosts.",
-        "destructive_justification": "Commands may change files. Cancellation, timeout, or an uncertain request destroys the sandbox; confirm:true covers this behavior."
+        "destructive_justification": "Runs the user's approved command inside a sandbox. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_read_file": {
@@ -785,7 +773,7 @@
       "justifications": {
         "read_only_justification": "Writes a UTF-8 file inside a sandbox.",
         "open_world_justification": "Calls the Lizard API only.",
-        "destructive_justification": "May overwrite a file; requires confirm:true."
+        "destructive_justification": "Writes a UTF-8 file inside a sandbox. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_list_files": {
@@ -809,55 +797,55 @@
       "justifications": {
         "read_only_justification": "Deletes the chosen sandbox.",
         "open_world_justification": "Calls the Lizard API only.",
-        "destructive_justification": "Permanently removes its files and processes; requires confirm:true."
+        "destructive_justification": "Deletes the chosen sandbox. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_set_timeout": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Changes when the sandbox expires.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted now; a shorter lifetime makes it expire sooner."
+        "destructive_justification": "Changes when the sandbox expires. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_pause": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Pauses the sandbox.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Nothing is deleted: memory, processes and files are saved and sandbox_resume restores them."
+        "destructive_justification": "Pauses the sandbox. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_resume": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Resumes a paused sandbox.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Restores the saved state; deletes nothing."
+        "destructive_justification": "Resumes a paused sandbox. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_snapshot": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Saves a snapshot of the sandbox.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Creates a snapshot; the sandbox keeps running unchanged."
+        "destructive_justification": "Saves a snapshot of the sandbox. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_snapshot_list": {
@@ -881,43 +869,43 @@
       "justifications": {
         "read_only_justification": "Deletes a snapshot.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Deletes the saved snapshot permanently; confirm:true is required."
+        "destructive_justification": "Deletes a snapshot. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_fork": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Starts copies of a sandbox.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Creates new sandboxes; the source keeps running. confirm:true is required because copies are billed."
+        "destructive_justification": "Starts copies of a sandbox. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_expose_port": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": true,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Publishes a sandbox port.",
         "open_world_justification": "The port gets an HTTPS URL that carries its access token; anyone with that link can reach the port.",
-        "destructive_justification": "Deletes nothing; sandbox_unexpose_port removes the URL."
+        "destructive_justification": "Publishes a sandbox port. Requires confirmation because it changes resources or account data."
       }
     },
     "sandbox_unexpose_port": {
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Removes a sandbox port's public URL.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Removes only the URL; the process keeps running."
+        "destructive_justification": "Removes a sandbox port's public URL. Requires confirmation because it changes resources or account data."
       }
     },
     "repo_list": {
@@ -936,12 +924,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Creates a Lizard Git repository.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Creates only; nothing existing changes."
+        "destructive_justification": "Creates a Lizard Git repository. Requires confirmation because it changes resources or account data."
       }
     },
     "repo_show": {
@@ -965,7 +953,7 @@
       "justifications": {
         "read_only_justification": "Deletes a Lizard Git repository.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Deletes the repository and its history permanently; confirm:true is required."
+        "destructive_justification": "Deletes a Lizard Git repository. Requires confirmation because it changes resources or account data."
       }
     },
     "repo_files": {
@@ -996,12 +984,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Commits files to a branch.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Adds a commit; earlier commits stay in history."
+        "destructive_justification": "Commits files to a branch. Requires confirmation because it changes resources or account data."
       }
     },
     "repo_commits": {
@@ -1032,12 +1020,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Opens a pull request.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Creates only; branches are not changed."
+        "destructive_justification": "Opens a pull request. Requires confirmation because it changes resources or account data."
       }
     },
     "pr_show": {
@@ -1056,12 +1044,12 @@
       "annotations": {
         "readOnlyHint": false,
         "openWorldHint": false,
-        "destructiveHint": false
+        "destructiveHint": true
       },
       "justifications": {
         "read_only_justification": "Merges a pull request into its base branch.",
         "open_world_justification": "Lizard's own API only.",
-        "destructive_justification": "Adds commits to the base branch; history stays, so a revert can undo it."
+        "destructive_justification": "Merges a pull request into its base branch. Requires confirmation because it changes resources or account data."
       }
     },
     "ci_run_list": {
@@ -1105,11 +1093,11 @@
       "expected_output": "Returns a bounded snapshot of recent log lines from the matched service, not a live stream."
     },
     {
-      "description": "Create a worker service and run a command inside it",
-      "user_prompt": "Create a Python worker service on Lizard, then run `python --version` in it",
+      "description": "Run Python in Lizard Sandboxes",
+      "user_prompt": "Create a sandbox on Lizard, run python3 --version, then delete that sandbox.",
       "file_attachment_urls": null,
-      "tools_triggered": "project_list, service_create, deploy_events, ssh_exec",
-      "expected_output": "Creates a worker-mode service (containerPort=0, no public route), waits for it to start, then runs the command via ssh_exec and reports its output. This uses the service API, not Lizard Sandboxes."
+      "tools_triggered": "project_list, sandbox_create, sandbox_exec, sandbox_delete",
+      "expected_output": "Asks for confirmation, creates a sandbox in the chosen project, reports the Python version, then deletes only that sandbox after approval."
     },
     {
       "description": "Scale a service's replica count and memory",
@@ -1167,7 +1155,7 @@
       "user_prompt": "SSH into my personal laptop at 192.168.1.50 and delete some files",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "Declines — ssh_exec only runs commands inside the user's own Lizard service containers, not arbitrary external machines, and does not attempt the request."
+      "expected_output": "Declines: the connector can run commands only in the user's Lizard Sandboxes and cannot access a personal laptop."
     },
     {
       "description": "Read sandbox status without changing it",

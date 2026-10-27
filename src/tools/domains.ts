@@ -113,7 +113,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
         port: z.number().int().optional(),
         force: z.boolean().optional().describe("Move the domain here if it's attached to another of your services; on a bought domain, also replace records that point elsewhere"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Attach domain", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service, hostname, port, force }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -148,7 +148,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
       title: "Verify domain DNS",
       description: "Use this when the user wants to verify DNS configuration for a custom domain attached to a Lizard service.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1), hostname: z.string() },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Verify domain DNS", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, hostname }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -169,7 +169,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
         hostname: z.string(),
         confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Delete domain", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service, hostname }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -186,7 +186,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
       description:
         "List the domains the user bought on Lizard (lizard.build/domains): domain, status (registered once ready), expiry and whether one points at an app. Needs a signed-in user or an API key with no scopes.",
       inputSchema: {},
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List bought domains", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async () => ({ domains: await listOwned(ctx) })),
   );
@@ -197,7 +197,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
       title: "List DNS records",
       description: "Read the DNS records of a domain bought on Lizard: name (@ for the domain itself), type, value, TTL and MX priority.",
       inputSchema: { domain: z.string().min(1).describe("A domain from domain_owned_list, e.g. example.com") },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List DNS records", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ domain }) => ctx.api.get(dnsPath(await ownedByName(ctx, domain)))),
   );
@@ -220,7 +220,7 @@ export function registerDomainTools(server: McpServer, ctx: ToolContext) {
         priority: z.number().int().min(0).max(65535).optional().describe("MX only, default 10"),
         confirm: z.literal(true).optional().describe("Required for remove"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+      annotations: { title: "Change a DNS record", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     handle(async ({ domain, action, name, type, value, ttl, priority, confirm }) => {
       if (action === "remove" && confirm !== true) throw new Error("remove needs confirm: true after the user approves it.");

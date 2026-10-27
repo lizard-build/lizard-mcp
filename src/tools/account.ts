@@ -12,7 +12,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
       title: "Create workspace",
       description: "Create a new workspace when the user asks for one. Check workspace_list first. Each call creates another workspace; retries do not reuse the first one.",
       inputSchema: { name: z.string().min(1).max(80) },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Create workspace", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ name }) => ctx.api.post("/api/workspaces", { name })),
   );
@@ -26,7 +26,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
         project: z.string().min(1).describe("Project name, slug, or ID; use an ID if names are ambiguous"),
         confirm: z.literal(true).describe("Set only after the user approves deleting this project"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Move project to trash", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project }) => {
       const target = await resolveProject(ctx.api, project);
@@ -43,7 +43,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
           ? "Use this when the user wants to stop every service of a Lizard project without deleting anything: each app and database scales to 0, keeping its URL, host, port, password, settings and volumes. Returns what was paused and what was skipped, with why. Undo with project_resume."
           : "Use this when the user wants to start again the services of a Lizard project that they paused. Services paused by a billing freeze stay paused until the account is paid. Returns what was resumed and what was skipped, with why.",
         inputSchema: { project: z.string().min(1).describe("Project name, slug, or ID") },
-        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        annotations: { title: op === "pause" ? "Pause project" : "Resume project", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       },
       handle(async ({ project }) => {
         const target = await resolveProject(ctx.api, project);
@@ -58,7 +58,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
           ? "Use this when the workspace owner wants to stop every service in every project of a workspace without deleting anything (same as project_pause for each project). Owner only. Undo with workspace_resume."
           : "Use this when the workspace owner wants to start again everything they paused in a workspace. Owner only. Returns what was resumed and what was skipped, with why.",
         inputSchema: { workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)") },
-        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        annotations: { title: op === "pause" ? "Pause workspace" : "Resume workspace", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       },
       handle(async ({ workspaceId }) => ctx.api.post(`/api/workspaces/${encodeURIComponent(workspaceId)}/${op}`)),
     );
@@ -73,7 +73,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
         workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)"),
         confirm: z.literal(true).describe("Set only after the user approves deleting this workspace"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Delete workspace", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ workspaceId }) => {
       await ctx.api.delete(withQuery(`/api/workspaces/${encodeURIComponent(workspaceId)}`, { requireEmpty: true }));
@@ -90,7 +90,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
         "Returns limits (maxRunningSandboxes, maxCpuVcpus, maxMemoryMb, maxDiskGb; null = no limit) and usage now (runningSandboxes, cpuVcpus, memoryMb, diskGb). " +
         "CPU and memory are what the workspace's apps and databases use, measured every ~10 s; disk is what its databases and volumes hold.",
       inputSchema: { workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)") },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Read workspace limits", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ workspaceId }) => ctx.api.get(`/api/workspaces/${encodeURIComponent(workspaceId)}/limits`)),
   );
@@ -109,7 +109,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
         maxMemoryMb: z.number().int().min(0).nullable().optional().describe("MB its apps and databases may be using"),
         maxDiskGb: z.number().min(0).nullable().optional().describe("GB its databases and volumes may hold"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Set workspace limits", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ workspaceId, ...limits }) => {
       const body = Object.fromEntries(Object.entries(limits).filter(([, v]) => v !== undefined));
@@ -134,7 +134,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
       description:
         "Read the prices a workspace's scoped API keys are shown, as multiples of Lizard's (owner only, with a key that has no scopes). Returns enabled and multipliers per resource: cpu, memory, storage (volumes), egress, objectStorage, sandbox.",
       inputSchema: { workspaceId: z.string().min(1).describe("Workspace ID (see workspace_list)") },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Read resale prices", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ workspaceId }) => ctx.api.get(`/api/workspaces/${encodeURIComponent(workspaceId)}/resale-pricing`)),
   );
@@ -151,7 +151,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
         ...resaleShape,
         off: z.boolean().optional().describe("Turn resale prices off"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Set resale prices", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ workspaceId, off, ...given }) => {
       const path = `/api/workspaces/${encodeURIComponent(workspaceId)}/resale-pricing`;
@@ -170,7 +170,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when you need to identify the currently authenticated Lizard user, e.g. before asking which workspace or project to act on.",
       inputSchema: {},
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Who am I", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async () => ctx.api.get("/api/auth/me")),
   );
@@ -182,7 +182,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when the user wants to see which Lizard workspaces they belong to, or needs a workspace ID to scope a project lookup.",
       inputSchema: {},
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List workspaces", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async () => ctx.api.get("/api/workspaces")),
   );
@@ -195,7 +195,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
       inputSchema: {
         workspaceId: z.string().optional().describe("Filter to this workspace ID"),
       },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List projects", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ workspaceId }) => ctx.api.get(withQuery("/api/projects", { workspaceId }))),
   );
@@ -210,7 +210,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
         name: z.string().min(1).describe("Project name"),
         workspaceId: z.string().min(1).describe("Workspace to create the project in"),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Create project", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ name, workspaceId }) => ctx.api.post("/api/projects", { name, workspaceId })),
   );
@@ -222,7 +222,7 @@ export function registerAccountTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when the user needs to know which deployment regions are available before creating a service or addon.",
       inputSchema: {},
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "List regions", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async () => ctx.api.get("/api/regions")),
   );

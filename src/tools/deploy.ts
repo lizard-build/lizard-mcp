@@ -12,7 +12,7 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when the user wants to trigger a new deployment of an existing Lizard service (rebuild and redeploy current source). Returns immediately once the build is triggered — use deploy_events to check progress. Each call starts another build, even if called again immediately.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Redeploy service", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -29,7 +29,7 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when the user wants to restart a running Lizard service without rebuilding it. Returns immediately. Each call restarts it again, even if called again immediately.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { title: "Restart service", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);
@@ -46,7 +46,7 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when the user wants to see recent deploy/build history and current replica status for a Lizard service.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
-      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { title: "Get deploy history", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service }) => {
       const proj = await resolveProject(ctx.api, project);

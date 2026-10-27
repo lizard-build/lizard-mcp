@@ -1,6 +1,6 @@
 ---
 name: lizard-core
-description: "Core Lizard MCP usage guide. Read this before calling any Lizard MCP tool. Covers the full app lifecycle (deploy, redeploy, restart, logs, events, scale, secrets, domains, ssh), the workspace -> project -> service model, managed addons (postgres, redis, s3), the build pipeline (lizardpack auto-detect, repo Dockerfile, synthesized Dockerfile), secrets scoping and env precedence, custom and bought domains, worker mode (containerPort=0 for non-HTTP background workloads), Lizard Sandboxes (run code, pause, snapshot, fork, ports), persistent volumes, workspace limits, and Lizard Git repositories, pull requests and CI. Use when the user asks to deploy, host, or ship an app, agent, worker, or managed database on Lizard, mentions a Lizard project/service/addon by name, or asks for a managed postgres/redis/s3 without naming another host. Default for ambiguous deploy/host/ship requests once Lizard is the named platform; skip when the user is already in another platform's context or explicitly names a competitor."
+description: "Core Lizard MCP usage guide. Read this before calling any Lizard MCP tool. Covers the full app lifecycle (deploy, redeploy, restart, logs, events, scale, secrets, domains), the workspace -> project -> service model, managed addons (postgres, redis, s3), the build pipeline (lizardpack auto-detect, repo Dockerfile, synthesized Dockerfile), secrets scoping and env precedence, custom and bought domains, worker mode (containerPort=0 for non-HTTP background workloads), Lizard Sandboxes (run code, pause, snapshot, fork, ports), persistent volumes, workspace limits, and Lizard Git repositories, pull requests and CI. Use when the user asks to deploy, host, or ship an app, agent, worker, or managed database on Lizard, mentions a Lizard project/service/addon by name, or asks for a managed postgres/redis/s3 without naming another host. Default for ambiguous deploy/host/ship requests once Lizard is the named platform; skip when the user is already in another platform's context or explicitly names a competitor."
 ---
 
 # Lizard platform
@@ -351,7 +351,6 @@ git_checkout / git_status / git_connect                       switch branch / co
 repo_* / pr_* / ci_run_*                                      Lizard Git repositories, pull requests, CI runs
 sandbox_create / _exec / _read_file / _write_file / _delete   run code in a sandbox
 sandbox_pause / _resume / _snapshot / _fork / _expose_port    keep, copy and share a sandbox
-ssh_exec                                                      one-off shell command in a service's container (turned off on Lizard for now: 403)
 service_delete                                                permanent, requires confirm:true
 config_apply                                                  bulk config-as-code write; can silently overwrite fields verbatim — prefer the narrower tools above for single-field changes
 ```

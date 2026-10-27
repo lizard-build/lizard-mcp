@@ -1078,9 +1078,8 @@
       "why": "Prints the Lizard CLI's own skill files."
     },
     "ssh": {
-      "mcp": [
-        "ssh_exec"
-      ]
+      "mcp": [],
+      "why": "Shell access to app services is disabled. Use sandbox exec for commands in Lizard Sandboxes."
     },
     "status": {
       "mcp": [],

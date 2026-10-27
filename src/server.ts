@@ -9,7 +9,6 @@ import { registerSecretsTools } from "./tools/secrets.js";
 import { registerDomainTools } from "./tools/domains.js";
 import { registerVolumeTools } from "./tools/volumes.js";
 import { registerGitTools } from "./tools/git.js";
-import { registerSshTools } from "./tools/ssh.js";
 import { registerConfigTools } from "./tools/config.js";
 import { registerTemplateTools } from "./tools/templates.js";
 import { registerSandboxTools } from "./tools/sandboxes.js";
@@ -17,8 +16,8 @@ import { registerRepoTools } from "./tools/repos.js";
 
 export interface ToolContext {
   api: ApiClient;
-  /** The raw access token, for the handful of tools (logs.tail build mode,
-   *  ssh.exec) that need to make their own SSE requests instead of going
+  /** The raw access token, for tools such as logs.tail build mode
+   *  that need to make their own SSE requests instead of going
    *  through ctx.api's plain JSON request/response shape. */
   accessToken: string;
 }
@@ -151,10 +150,9 @@ There is no separate platform-side confirmation step — a tool call is the acti
 Destructive tools (project_delete, workspace_delete, service_delete, secrets_delete,
 domain_delete, volume_delete, sandbox_delete, sandbox_snapshot_delete, repo_delete) require confirm:true
 in the call itself since there's no interactive prompt in MCP; still get the user's
-explicit go-ahead in conversation before setting it. ssh_exec runs arbitrary shell
-commands inside the service's container — only use it for commands the user would
-recognize and approve. Shell access to services is turned off on Lizard for now (the
-platform answers 403); to run commands, use a sandbox instead.
+explicit go-ahead in conversation before setting it. All write tools declare
+destructiveHint:true so clients can ask before changing resources. Shell access to
+services is unavailable; use sandbox_exec to run commands in a sandbox.
 
 ## Composition
 
@@ -183,7 +181,6 @@ export function getServer(accessToken: string): McpServer {
   registerDomainTools(server, ctx);
   registerVolumeTools(server, ctx);
   registerGitTools(server, ctx);
-  registerSshTools(server, ctx);
   registerConfigTools(server, ctx);
   registerTemplateTools(server, ctx);
   registerSandboxTools(server, ctx);

@@ -263,7 +263,8 @@ A sandbox is a Firecracker microVM for running code, separate from app services.
 `sandbox_create` takes an explicit project, a finite `lifetimeMs` (default 5 minutes, at
 most a day) and `confirm: true`; `template` (default `interpreter`; also `base`, `codex`,
 `claude`, `opencode`, `pi`, `prime`, `desktop`) and `size` (`small`, `medium`, `large`)
-are optional. Then `sandbox_write_file`, `sandbox_exec`, `sandbox_read_file` and
+are optional. It starts in `us-east-1` unless `region` names another; with `volume` or
+`snapshotId` it starts in their region. Then `sandbox_write_file`, `sandbox_exec`, `sandbox_read_file` and
 `sandbox_list_files` work inside it, and `sandbox_delete` ends it. Every create needs
 the user's approval: sandboxes are billed.
 

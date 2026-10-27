@@ -141,7 +141,7 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("pr_create", {
     title: "Open pull request",
-    description: "Open a pull request in a Lizard Git repository from head (a branch, or owner:branch of a fork) into base (default branch if omitted). draft: true opens it as a draft.",
+    description: "Open a pull request in a Lizard Git repository from head (a branch, or owner:branch of a fork) into base (default branch if omitted). draft: true opens it as a draft. Uses the Lizard Git API; docs: https://lizard.build/docs/.",
     inputSchema: {
       repo, title: z.string().min(1), head: z.string().min(1), base: z.string().min(1).optional(),
       body: z.string().optional(), draft: z.boolean().optional(),

@@ -43,11 +43,13 @@ export function registerMetricsTools(server: McpServer, ctx: ToolContext) {
       description:
         "Use this when a tool fails with PAYMENT_REQUIRED, or the user asks about their plan, trial or bill. " +
         "Returns the account's plan (none, pro, payg = old prepaid credits until November 1, 2026, enterprise), " +
-        "the Pro status (trialing, active, past_due, canceled), trial days and trial credits left, this month's " +
-        "credits used of the included $19 and the overage, the next charge, a pending cancel, an unpaid invoice " +
-        "link, and billingUrl. Pro is $19/month, taxes included, with $19 of credits each month. Starting Pro, " +
-        "paying and cancelling happen in the browser at billingUrl; give the user the link. With workspaceId, " +
-        "reads that workspace owner's plan.",
+        "the Pro tier (tier: pro, pro_99 = Pro 5x, pro_499 = Pro 20x; pendingTier: a move down next period; tiers: " +
+        "price, included usage, vCPU of Sandboxes at once and whether each is open to the account), the Pro status " +
+        "(trialing, active, past_due, canceled), trial days and trial usage left, this month's usage of the included " +
+        "amount and the overage, the next charge, a pending cancel, an unpaid invoice link, and billingUrl. Pro is " +
+        "$19/month with $19 of usage included, Pro 5x $99 with $99, Pro 20x $499 with $499, taxes included; only Pro " +
+        "has a trial. Starting Pro, changing tier, paying and cancelling happen in the browser at billingUrl; give " +
+        "the user the link. With workspaceId, reads that workspace owner's plan.",
       inputSchema: {
         workspaceId: z.string().optional().describe("Read the plan of this workspace's owner instead of your own"),
       },

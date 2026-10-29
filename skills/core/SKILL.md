@@ -74,10 +74,11 @@ an error through the MCP protocol. Common cases:
 
 ## Billing
 
-Pro costs $19/month, taxes included, and includes $19 in credits each month for
+Pro costs $19/month, taxes included, and includes $19 of usage each month for
 everything on the account. Usage above that is pay as you go, invoiced as it builds
-up. A new account starts with a 7-day trial with $5 in credits; it needs a card, and
-nothing is charged until the trial ends. Enterprise accounts pay as you go, invoiced
+up. Pro 5x ($99/month, $99 of usage) and Pro 20x ($499/month, $499) work the same way
+and run more Sandboxes at once; they have no trial. A new account starts with a 7-day
+trial with $5 of usage; it needs a card, and nothing is charged until the trial ends. Enterprise accounts pay as you go, invoiced
 monthly. Accounts on the old prepaid credits (`plan: "payg"`) keep working until
 November 1, 2026. There are no top-ups and no crypto or x402 payments.
 
@@ -85,16 +86,25 @@ When the account needs a plan or a payment, every create (`service_create`,
 `addon_create`, `template_deploy`, `domain_attach`, redeploys) fails with code
 `PAYMENT_REQUIRED` (`INSUFFICIENT_CREDITS` from older servers). The error text is the
 platform's sentence to show the user as is, and its last line is the page to open:
-the Pro trial or Start Pro, Billing (a failed payment, trial credits used up), or the
+the Pro trial or Start Pro, Billing (a failed payment, trial usage used up), or the
 Credits page for prepaid credits. `structuredContent.error.paymentStatus` says which:
 `trial_available`, `subscription_required`, `trial_credits_used`, `past_due`,
 `paused`, or a prepaid credits status.
 
-`billing_status` reads the plan: trial days and credits left, this month's credits
-used of $19 and the overage, the next charge, an unpaid invoice, and `billingUrl`.
-Use it when a create fails with `PAYMENT_REQUIRED` or the user asks about their bill.
-This server cannot start, pay for or cancel a plan: give the user the link, never ask
-for card details in chat, and retry the failed call after they say they are done.
+`billing_status` reads the plan: the tier (`tier`, `pendingTier`, `tiers`), trial
+days and usage left, this month's usage of the included amount and the overage, the
+next charge, an unpaid invoice, and `billingUrl`. Use it when a create fails with
+`PAYMENT_REQUIRED` or the user asks about their bill. This server cannot start, pay
+for, change or cancel a plan: give the user the link, never ask for card details in
+chat, and retry the failed call after they say they are done.
+
+Sandbox limits count vCPU of running sandboxes (Small 2, Medium 4, Large 8; paused
+ones don't count), across all of the owner's workspaces: up to 4 Small on the trial,
+40 vCPU on Pro, 220 on Pro 5x, 1,200 on Pro 20x. Past the limit, a sandbox create,
+fork or resume fails with `SANDBOX_LIMIT_REACHED`; `structuredContent.error` has
+`unit` (`vcpu`), `limit`, `running` and `needed`. Pause or delete an idle sandbox,
+pick a smaller size, or tell the user a higher Pro tier raises it.
+`SANDBOX_RATE_LIMITED` has `retryAfterS`: wait that long.
 
 ## Setup decision flow
 
@@ -341,7 +351,7 @@ service_pause / service_resume                                stop one app or da
 project_pause / project_resume, workspace_pause / _resume     the same for every service of a project / workspace (owner)
 service_sleep_status / service_sleep_set                      serverless: sleep when idle (memory saved, ~1 s wake) or always on
 logs_tail / metrics_get / billing_summary                     recent logs / cpu+mem+net / cost summary
-billing_status                                                plan, trial, credits used this month, Billing link
+billing_status                                                plan, tier, trial, usage this month, Billing link
 secrets_list / secrets_set / secrets_delete / secrets_refs    env vars, scoped project-wide or per-service
 domain_attach / domain_verify / domain_delete                 custom domain lifecycle
 domain_owned_list / domain_dns_list / domain_dns_update       domains bought on Lizard and their DNS records

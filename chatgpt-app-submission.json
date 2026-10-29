@@ -435,7 +435,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Reads the account's plan, trial and credits used this month, no writes.",
+        "read_only_justification": "Reads the account's plan, tier, trial and usage this month, no writes.",
         "open_world_justification": "Lizard's own API only.",
         "destructive_justification": "Pure read."
       }

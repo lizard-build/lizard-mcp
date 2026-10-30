@@ -145,7 +145,10 @@ ones don't count), across all of the owner's workspaces: up to 4 Small on the tr
 and sandbox_resume fail with SANDBOX_LIMIT_REACHED; the error's structuredContent has
 unit ("vcpu"), limit, running (vCPU in use) and needed. Pause or delete an idle sandbox,
 pick a smaller size, or tell the user a higher Pro tier raises it (billing_status lists
-the tiers). SANDBOX_RATE_LIMITED has retryAfterS: wait that long.
+the tiers). Starts are limited too, per day: 100 on the trial, 400 on Pro, 1,000 on
+Pro 5x, 3,000 on Pro 20x (per minute 6, 24, 60, 120; per hour 30, 120, 300, 600).
+Past one, SANDBOX_RATE_LIMITED has retryAfterS: wait that long. On the trial, the first
+paid invoice raises the day's 100 starts to 400.
 
 ## Workspace limits
 

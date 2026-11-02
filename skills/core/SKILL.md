@@ -104,8 +104,8 @@ ones don't count), across all of the owner's workspaces: up to 4 Small on the tr
 fork or resume fails with `SANDBOX_LIMIT_REACHED`; `structuredContent.error` has
 `unit` (`vcpu`), `limit`, `running` and `needed`. Pause or delete an idle sandbox,
 pick a smaller size, or tell the user a higher Pro tier raises it.
-Starts are limited too, per day: 100 on the trial, 400 on Pro, 1,000 on Pro 5x,
-3,000 on Pro 20x (per minute 6, 24, 60, 120; per hour 30, 120, 300, 600). Past one,
+Starts are limited on the trial and Pro, per day: 100 and 400 (per minute 6, 24;
+per hour 30, 120). Pro 5x and Pro 20x have unlimited starts. Past one,
 `SANDBOX_RATE_LIMITED` has `retryAfterS`: wait that long. On the trial, the first
 paid invoice raises the day's 100 starts to 400.
 

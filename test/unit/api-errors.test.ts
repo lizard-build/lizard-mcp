@@ -76,6 +76,15 @@ describe("API errors carry the platform's sentence and the page to open", () => 
     });
   });
 
+  it("a limit error carries its unit and numbers", async () => {
+    const body = { error: "Your plan runs up to 40 vCPU of Sandboxes at once. 38 are in use and this sandbox needs 4.", code: "SANDBOX_LIMIT_REACHED", tier: "pro", unit: "vcpu", limit: 40, running: 38, needed: 4 };
+    const result = await handle(async () => { throw apiErrorFrom(429, "Too Many Requests", body); })();
+    expect(result.content).toEqual([{ type: "text", text: body.error }]);
+    expect(result.structuredContent).toEqual({ error: { status: 429, code: "SANDBOX_LIMIT_REACHED", unit: "vcpu", limit: 40, running: 38, needed: 4 } });
+    const rate = await handle(async () => { throw apiErrorFrom(429, "Too Many Requests", { error: "Try again in 40 seconds.", code: "SANDBOX_RATE_LIMITED", limit: 24, retryAfterS: 40 }); })();
+    expect(rate.structuredContent).toEqual({ error: { status: 429, code: "SANDBOX_RATE_LIMITED", limit: 24, retryAfterS: 40 } });
+  });
+
   it("the Billing link is public even when PLATFORM_URL is not", () => {
     expect(billingPageUrl()).toMatch(/^https:\/\/.+\/profile\/account-billing$/);
   });

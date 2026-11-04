@@ -24,11 +24,13 @@ export function errResult(message: string, structured?: Record<string, unknown>)
 }
 
 const LINK_FIELDS = ["subscribeUrl", "billingUrl", "topupUrl", "invoiceUrl"] as const;
+/** A 429's numbers: `unit` ("vcpu" | "sandboxes") says what `limit`, `running` and `needed` count. */
+const LIMIT_FIELDS = ["unit", "limit", "running", "needed", "retryAfterS"] as const;
 
 /**
  * The error a tool returns for a failed platform call. The text is the platform's
  * sentence plus the page to open (see apiErrorFrom); structuredContent carries the
- * HTTP status, the code, the 402 `status` and the links, for clients that branch on them.
+ * HTTP status, the code, the 402 `status`, the links and a limit's numbers, for clients that branch on them.
  */
 export function apiErrResult(err: APIError): CallToolResult {
   const body = (err.body && typeof err.body === "object" ? err.body : {}) as Record<string, unknown>;
@@ -36,6 +38,7 @@ export function apiErrResult(err: APIError): CallToolResult {
   if (err.code) detail.code = err.code;
   if (typeof body.status === "string") detail.paymentStatus = body.status;
   for (const key of LINK_FIELDS) if (typeof body[key] === "string") detail[key] = body[key];
+  for (const key of LIMIT_FIELDS) if (typeof body[key] === "string" || typeof body[key] === "number") detail[key] = body[key];
   return errResult(err.message, { error: detail });
 }
 

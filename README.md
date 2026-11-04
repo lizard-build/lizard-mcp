@@ -152,7 +152,7 @@ Destructive tools — `project_delete`, `workspace_delete`, `service_delete`, `s
 
 `project_delete` puts the project's services and databases in trash for 3 days, but deletes its sandboxes, their volumes and snapshots at once.
 
-`billing_status` is read-only: it shows the plan (Pro at $19/month with $19 of usage included each month, the trial, prepaid credits until November 1, 2026, or enterprise) and the Billing link. Starting, paying for and cancelling Pro happen in the browser. When the account has to pay before it can create something, the tool error gives the platform's sentence with the page to open on its last line, and `structuredContent.error` carries the code (`PAYMENT_REQUIRED`), `paymentStatus` and the links.
+`billing_status` is read-only: it shows the plan (Pro at $19/month with $19 of usage included each month, Pro 5x at $99 with $99, Pro 20x at $499 with $499, the trial, prepaid credits until November 1, 2026, or enterprise), the tier and the Billing link. Starting, changing tier, paying for and cancelling Pro happen in the browser. When the account has to pay before it can create something, the tool error gives the platform's sentence with the page to open on its last line, and `structuredContent.error` carries the code (`PAYMENT_REQUIRED`), `paymentStatus` and the links.
 
 ### What the Lizard CLI has and this server does not
 

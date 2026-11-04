@@ -1,5 +1,5 @@
 {
-  "cliVersion": "4.0.77",
+  "cliVersion": "4.0.90",
   "note": "Every Lizard CLI command, and the Lizard MCP tools that do the same job. An empty mcp list says why. scripts/audit-cli.ts checks this against `lizard --help --json`; test/unit/parity.test.ts checks the tool names.",
   "mcpOnly": {
     "template_list": "Templates are in the dashboard and the API, not the Lizard CLI.",
@@ -31,6 +31,10 @@
       "why": "Handles credentials or payments; done in the browser or the user's own terminal."
     },
     "billing start": {
+      "mcp": [],
+      "why": "Handles credentials or payments; done in the browser or the user's own terminal."
+    },
+    "billing tier": {
       "mcp": [],
       "why": "Handles credentials or payments; done in the browser or the user's own terminal."
     },

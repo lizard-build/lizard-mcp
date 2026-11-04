@@ -1,5 +1,6 @@
 import { posix } from "node:path";
 import { z } from "zod";
+import { redactServiceDetails } from "../lib/service-redaction.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
 import { APIError, apiErrorFrom, NO_TOKEN_MESSAGE, withQuery } from "../lib/api.js";
@@ -101,19 +102,23 @@ interface SnapshotRecord { id: string; status: string; error?: string; [key: str
 export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
   server.registerTool("sandbox_list", {
     title: "List sandboxes",
-    description: "List Lizard Sandboxes in an explicit project. Use the returned IDs with sandbox tools; these resources are separate from app services.",
+    description: "List Lizard Sandboxes in an explicit project with access tokens and SSH passwords masked. Use the returned IDs with sandbox tools; these resources are separate from app services.",
     inputSchema: { project: z.string().min(1) }, annotations: { title: "List sandboxes", ...readOnly },
   }, handle(async ({ project }) => {
     const resolved = await resolveProject(ctx.api, project);
-    return ctx.api.get(`/api/projects/${encodeURIComponent(resolved.id)}/sandboxes`);
+    return redactServiceDetails(await ctx.api.get(`/api/projects/${encodeURIComponent(resolved.id)}/sandboxes`));
   }));
 
   server.registerTool("sandbox_show", {
     title: "Show sandbox",
-    description: "Read a sandbox's status (running, pausing, paused, resuming, ...), project, template, size and expiry. The platform checks the current user's access to this ID.",
-    inputSchema: { sandboxId: id }, annotations: { title: "Show sandbox", ...readOnly },
-  }, handle(async ({ sandboxId }) => {
-    return ctx.api.get(route(sandboxId));
+    description: "Read a sandbox's status, project, template, size and expiry. Access tokens and SSH passwords are masked by default; set reveal:true only when the user explicitly asks for them. The platform checks the current user's access to this ID.",
+    inputSchema: {
+      sandboxId: id,
+      reveal: z.boolean().optional().default(false).describe("Include access credentials only on explicit request"),
+    }, annotations: { title: "Show sandbox", ...readOnly },
+  }, handle(async ({ sandboxId, reveal }) => {
+    const data = await ctx.api.get(route(sandboxId));
+    return reveal ? data : redactServiceDetails(data);
   }));
 
   server.registerTool("sandbox_create", {

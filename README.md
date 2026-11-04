@@ -187,6 +187,8 @@ Commands run as root within the sandbox, default to a 60-second timeout, and acc
 
 Text reads and writes accept up to 64 KiB of UTF-8. Each output stream is capped at 64 KiB and includes a truncation flag. All paths refer to the sandbox. `sandbox_show` and `sandbox_list` help check an uncertain result before retrying. `sandbox_delete` treats a sandbox that is already gone as a successful no-op.
 
+Service and sandbox list/status tools mask connection credentials, environment values and build-log snippets. For credentials, call `service_show` or `sandbox_show` with `reveal: true` only when the user asks for them. `secrets_list` also masks values unless `reveal: true` is set. Port tools return access credentials when the user asks to expose a sandbox port.
+
 The HTTP server handles each call with its caller's Bearer token, including OAuth tokens and API keys. It keeps no shared sandbox handles or global SDK credentials. A disconnected client must reconnect to delete its sandbox; its finite lifetime remains the cleanup backstop.
 
 ## Auth

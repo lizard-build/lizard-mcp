@@ -4,6 +4,7 @@ import type { ToolContext } from "../server.js";
 import { withScope, type ResourceScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
+import { redactServiceDetails } from "../lib/service-redaction.js";
 
 /** 1024 -> "1Gi", 512 -> "512Mi". Matches lizard-cli/src/commands/scale.ts's mbToK8s. */
 function mbToK8s(mb: number): string {
@@ -89,13 +90,13 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     "service_list",
     {
       title: "List services",
-      description: "Use this when the user wants to see all apps and addons in a Lizard project.",
+      description: "List apps and addons in a Lizard project. Environment values, connection credentials and build-log snippets are masked. Use service_show with reveal:true only when the user asks for those details.",
       inputSchema: { project: z.string().min(1).describe("Project name, slug, or ID") },
       annotations: { title: "List services", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project }) => {
       const proj = await resolveProject(ctx.api, project);
-      return ctx.api.get(withScope(`/api/projects/${proj.id}/services`, { workspaceId: proj.workspaceId }));
+      return redactServiceDetails(await ctx.api.get(withScope(`/api/projects/${proj.id}/services`, { workspaceId: proj.workspaceId })));
     }),
   );
 
@@ -104,17 +105,22 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Show service details",
       description:
-        "Use this when the user wants details about a single Lizard service (app or addon) — status, config, resource limits.",
-      inputSchema: { project: z.string().min(1), service: z.string().min(1) },
+        "Read a Lizard service's status, config and resource limits. Environment values, connection credentials and build-log snippets are masked by default. Set reveal:true only when the user explicitly asks to see those details.",
+      inputSchema: {
+        project: z.string().min(1),
+        service: z.string().min(1),
+        reveal: z.boolean().optional().default(false).describe("Include credentials and build-log snippets only on explicit request"),
+      },
       annotations: { title: "Show service details", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
-    handle(async ({ project, service }) => {
+    handle(async ({ project, service, reveal }) => {
       const proj = await resolveProject(ctx.api, project);
       const scope = { workspaceId: proj.workspaceId };
       const svc = await resolveService(ctx.api, proj.id, service, scope);
-      if (svc.kind === "app") return ctx.api.get(`/api/apps/${svc.id}`);
-      const data = await ctx.api.get<ServicesResponse>(withScope(`/api/projects/${proj.id}/services`, scope));
-      return data.addons?.find((a) => a.id === svc.id) ?? null;
+      const data = svc.kind === "app"
+        ? await ctx.api.get(`/api/apps/${svc.id}`)
+        : (await ctx.api.get<ServicesResponse>(withScope(`/api/projects/${proj.id}/services`, scope))).addons?.find((a) => a.id === svc.id) ?? null;
+      return reveal ? data : redactServiceDetails(data);
     }),
   );
 

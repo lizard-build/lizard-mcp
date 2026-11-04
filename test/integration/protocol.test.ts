@@ -18,7 +18,7 @@ let calls: Call[] = [];
 let reply: (call: Call) => Reply;
 let authStatus = 200;
 const project = { id: 'p1', name: 'demo', slug: 'demo', workspaceId: 'w1' };
-const services = { apps: [{ id: 'a1', name: 'web' }], addons: [] };
+let services: { apps: any[]; addons: any[] } = { apps: [{ id: 'a1', name: 'web' }], addons: [] };
 const env = () => ({ ...process.env, PLATFORM_URL: platformUrl, LIZARD_TOKEN: 'liz_fixture' }) as Record<string, string>;
 const makeClient = () => new Client({ name: 'lizard-protocol-test', version: '1' });
 const invoke = (name: string, args: Record<string, unknown> = {}) => client.callTool({ name, arguments: args });
@@ -77,9 +77,65 @@ afterAll(async () => {
   if (httpProcess && httpProcess.exitCode === null) { httpProcess.kill(); await once(httpProcess, 'exit'); }
   await new Promise<void>((resolve) => platform?.close(() => resolve()));
 });
-beforeEach(() => { calls = []; authStatus = 200; reply = () => ({ body: { ok: true } }); });
+beforeEach(() => {
+  calls = []; authStatus = 200; reply = () => ({ body: { ok: true } });
+  services = { apps: [{ id: 'a1', name: 'web' }], addons: [] };
+});
 
 describe('real MCP transports against a local REST fixture', () => {
+  it.each(['stdio', 'HTTP'])('keeps credentials out of list and show responses over %s', async (transport) => {
+    services = {
+      apps: [{ id: 'a1', name: 'web', status: 'running', envVars: '{"API_KEY":"fixture-app-secret"}' }],
+      addons: [{ id: 'db1', name: 'cache', addonType: 'redis', running: true,
+        connection: { password: 'fixture-db-secret', url: 'redis://user:fixture-db-secret@cache.example:6379' } }],
+    };
+    reply = () => ({ body: { ...services.apps[0], builds: [{ status: 'done', logSnippet: 'echo fixture-build-secret' }] } });
+    const peer = transport === 'HTTP' ? httpClient : client;
+    for (const [name, args] of [
+      ['service_list', { project: 'demo' }],
+      ['service_show', { project: 'demo', service: 'web' }],
+      ['service_show', { project: 'demo', service: 'cache' }],
+    ] as const) {
+      const result = await peer.callTool({ name, arguments: args });
+      expect(result.isError).not.toBe(true);
+      const output = JSON.stringify(result);
+      for (const secret of ['fixture-app-secret', 'fixture-db-secret', 'fixture-build-secret']) expect(output).not.toContain(secret);
+      expect(output).toContain('***');
+      expect(output).toMatch(/running/);
+    }
+    expect(writes()).toEqual([]);
+  });
+
+  it('returns original connection and environment values only with explicit reveal', async () => {
+    services.addons = [{ id: 'db1', name: 'cache', addonType: 'redis', connection: { password: 'fixture-db-secret' } }];
+    reply = () => ({ body: { id: 'a1', envVars: '{"API_KEY":"fixture-app-secret"}' } });
+    const app = await invoke('service_show', { project: 'demo', service: 'web', reveal: true });
+    const addon = await invoke('service_show', { project: 'demo', service: 'cache', reveal: true });
+    expect(app.structuredContent).toMatchObject({ envVars: '{"API_KEY":"fixture-app-secret"}' });
+    expect(addon.structuredContent).toMatchObject({ connection: { password: 'fixture-db-secret' } });
+    expect(writes()).toEqual([]);
+  });
+
+  it('masks sandbox access credentials in both transports and reveals only on request', async () => {
+    const sandbox = { sandboxId: 's1', status: 'running', accessToken: 'fixture-access-token', sshPassword: 'fixture-ssh-password' };
+    reply = call => ({ body: call.url.endsWith('/sandboxes') ? [sandbox] : sandbox });
+    for (const peer of [client, httpClient]) {
+      for (const [name, args] of [
+        ['sandbox_list', { project: 'demo' }],
+        ['sandbox_show', { sandboxId: 's1' }],
+      ] as const) {
+        const result = await peer.callTool({ name, arguments: args });
+        expect(result.isError).not.toBe(true);
+        expect(JSON.stringify(result)).not.toContain('fixture-access-token');
+        expect(JSON.stringify(result)).not.toContain('fixture-ssh-password');
+        expect(texts(result)).toContain('running');
+      }
+      const explicit = await peer.callTool({ name: 'sandbox_show', arguments: { sandboxId: 's1', reveal: true } });
+      expect(explicit.structuredContent).toEqual(sandbox);
+    }
+    expect(writes()).toEqual([]);
+  });
+
   it('lists the same 89 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();

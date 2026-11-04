@@ -146,7 +146,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       return ctx.api.post(
         withScope(`/api/projects/${proj.id}/apps`, { workspaceId: proj.workspaceId }),
         { name, region, repoUrl: repoUrl ? normalizeRepoUrl(repoUrl) : undefined, containerPort, envVars, skipInitialDeploy },
-      );
+      ).then(redactServiceDetails);
     }),
   );
 
@@ -169,7 +169,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       return ctx.api.post(
         withScope(`/api/projects/${proj.id}/addons`, { workspaceId: proj.workspaceId }),
         { type, region, name },
-      );
+      ).then(redactServiceDetails);
     }),
   );
 
@@ -188,9 +188,9 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       if (svc.kind === "app") {
         return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, scope), {
           services: [{ id: svc.id, name }],
-        });
+        }).then(redactServiceDetails);
       }
-      return ctx.api.patch(withScope(`/api/projects/${proj.id}/addons/${svc.id}`, scope), { name });
+      return ctx.api.patch(withScope(`/api/projects/${proj.id}/addons/${svc.id}`, scope), { name }).then(redactServiceDetails);
     }),
   );
 
@@ -211,8 +211,8 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       const proj = await resolveProject(ctx.api, project);
       const scope = { workspaceId: proj.workspaceId };
       const svc = await resolveService(ctx.api, proj.id, service, scope);
-      if (svc.kind === "app") return ctx.api.delete(withScope(`/api/apps/${svc.id}`, scope));
-      return ctx.api.delete(withScope(`/api/projects/${proj.id}/addons/${svc.id}`, scope));
+      if (svc.kind === "app") return ctx.api.delete(withScope(`/api/apps/${svc.id}`, scope)).then(redactServiceDetails);
+      return ctx.api.delete(withScope(`/api/projects/${proj.id}/addons/${svc.id}`, scope)).then(redactServiceDetails);
     }),
   );
 
@@ -234,8 +234,8 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
         const proj = await resolveProject(ctx.api, project);
         const scope = { workspaceId: proj.workspaceId };
         const svc = await resolveService(ctx.api, proj.id, service, scope);
-        if (svc.kind === "app") return ctx.api.post(withScope(`/api/apps/${svc.id}/${op}`, scope));
-        return ctx.api.post(withScope(`/api/projects/${proj.id}/addons/${svc.id}/${op}`, scope));
+        if (svc.kind === "app") return ctx.api.post(withScope(`/api/apps/${svc.id}/${op}`, scope)).then(redactServiceDetails);
+        return ctx.api.post(withScope(`/api/projects/${proj.id}/addons/${svc.id}/${op}`, scope)).then(redactServiceDetails);
       }),
     );
   }
@@ -263,7 +263,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       const proj = await resolveProject(ctx.api, project);
       const scope = { workspaceId: proj.workspaceId };
       const svc = await resolveService(ctx.api, proj.id, service, scope);
-      return ctx.api.get(sleepPath(proj.id, svc, scope));
+      return ctx.api.get(sleepPath(proj.id, svc, scope)).then(redactServiceDetails);
     }),
   );
 
@@ -285,7 +285,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       const proj = await resolveProject(ctx.api, project);
       const scope = { workspaceId: proj.workspaceId };
       const svc = await resolveService(ctx.api, proj.id, service, scope);
-      return ctx.api.put(sleepPath(proj.id, svc, scope), { enabled, ...(idleMinutes ? { idleMinutes } : {}) });
+      return ctx.api.put(sleepPath(proj.id, svc, scope), { enabled, ...(idleMinutes ? { idleMinutes } : {}) }).then(redactServiceDetails);
     }),
   );
 
@@ -371,7 +371,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       if (svc.kind !== "app") throw new Error("Container port only applies to apps, not addons.");
       return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, scope), {
         services: [{ id: svc.id, name: svc.name, containerPort }],
-      });
+      }).then(redactServiceDetails);
     }),
   );
 
@@ -419,7 +419,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
         } catch {}
       }
 
-      return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, scope), body);
+      return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, scope), body).then(redactServiceDetails);
     }),
   );
 }
@@ -468,3 +468,4 @@ async function scaleAddon(
     ...(result?.sideEffectFailures?.length ? { sideEffectFailures: result.sideEffectFailures } : {}),
   };
 }
+

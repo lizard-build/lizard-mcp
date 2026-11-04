@@ -45,7 +45,7 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Get deploy history",
       description:
-        "Use this when the user wants to see recent deploy/build history and current replica status for a Lizard service.",
+        "Use this when the user wants to see recent deploy/build history and current replica status for a Lizard service. Credentials and log snippets are masked. Use logs_tail to read build logs when the user asks to inspect them.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
       annotations: { title: "Get deploy history", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },

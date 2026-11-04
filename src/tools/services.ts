@@ -155,7 +155,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Create addon",
       description:
-        "Use this when the user wants to provision a managed database or storage addon (Postgres, Redis, or S3) in a Lizard project. Calling this again creates another addon, even with the same name — it does not update an existing one.",
+        "Use this when the user wants to provision a managed database or storage addon (Postgres, Redis, or S3) in a Lizard project. Calling this again creates another addon, even with the same name — it does not update an existing one. Connection credentials are masked; use service_show with reveal:true only when the user asks for them.",
       inputSchema: {
         project: z.string().min(1),
         type: z.enum(["postgres", "redis", "s3"]),

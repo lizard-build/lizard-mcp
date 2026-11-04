@@ -4,6 +4,7 @@ import type { ToolContext } from "../server.js";
 import { withScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
+import { redactServiceDetails } from "../lib/service-redaction.js";
 
 interface Secret {
   key: string;
@@ -40,7 +41,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Set secrets",
       description:
-        "Use this when the user wants to set one or more environment variables/secrets on a Lizard service or project. Overwrites existing values with the same key.",
+        "Use this when the user wants to set one or more environment variables/secrets on a Lizard service or project. Overwrites existing values with the same key. Credentials in the response are masked; use secrets_list with reveal:true only when the user asks for them.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1).optional().describe("Omit to set project-wide (global) secrets"),
@@ -54,7 +55,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
       const payload = service
         ? { secrets: { services: { [(await resolveService(ctx.api, proj.id, service, scope)).name]: values } } }
         : { secrets: { shared: values } };
-      return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, scope), payload);
+      return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, scope), payload).then(redactServiceDetails);
     }),
   );
 
@@ -63,7 +64,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Delete secrets",
       description:
-        "Use this when the user wants to remove one or more environment variables/secrets from a Lizard service or project. This is destructive and cannot be undone — requires explicit confirmation.",
+        "Use this when the user wants to remove one or more environment variables/secrets from a Lizard service or project. This is destructive and cannot be undone — requires explicit confirmation. Credentials in the response are masked.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1).optional(),
@@ -90,7 +91,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
 
       const nulls = Object.fromEntries(keys.map((k) => [k, null]));
       const payload = svc ? { secrets: { services: { [svc.name]: nulls } } } : { secrets: { shared: nulls } };
-      return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, scope), payload);
+      return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, scope), payload).then(redactServiceDetails);
     }),
   );
 
@@ -113,3 +114,4 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
     }),
   );
 }
+

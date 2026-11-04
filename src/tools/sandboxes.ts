@@ -125,6 +125,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     title: "Create sandbox",
     description:
       "Create a sandbox (a Firecracker microVM) in an explicit project. Uses billed cloud resources and returns its ID. " +
+      "Access credentials are masked; use sandbox_show with reveal:true only when the user asks for them. " +
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
       "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). Sizes: small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
       "Pass snapshotId to start from a saved snapshot (it keeps the snapshot's size, so leave size out) and volume to mount a persistent volume. " +

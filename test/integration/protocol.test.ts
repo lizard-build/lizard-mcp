@@ -178,6 +178,31 @@ describe('real MCP transports against a local REST fixture', () => {
     expect((await invoke('sandbox_expose_port', { sandboxId: 's1', port: 3000 })).structuredContent).toEqual(exposed);
   });
 
+  it.each(['stdio', 'HTTP'])('masks config and secret write responses without changing requests over %s', async (transport) => {
+    const peer = transport === 'HTTP' ? httpClient : client;
+    const secret = 'fixture-config-secret';
+    reply = call => ({ body: call.method === 'GET'
+      ? [{ key: 'API_KEY', value: secret }]
+      : { ok: true, secrets: { shared: { API_KEY: secret } }, services: [{ envVars: { API_KEY: secret } }] } });
+    const config = { secrets: { shared: { API_KEY: secret } } };
+    for (const [name, args] of [
+      ['config_apply', { project: 'demo', config }],
+      ['secrets_set', { project: 'demo', values: { API_KEY: secret } }],
+      ['secrets_delete', { project: 'demo', keys: ['API_KEY'], confirm: true }],
+    ] as const) {
+      const result = await peer.callTool({ name, arguments: args });
+      expect(result.isError, name).not.toBe(true);
+      expect(JSON.stringify(result), name).not.toContain(secret);
+      expect(result.structuredContent, name).toMatchObject({ ok: true });
+      expect(texts(result), name).toContain('***');
+    }
+    expect(writes().map(call => call.body)).toEqual([
+      config,
+      config,
+      { secrets: { shared: { API_KEY: null } } },
+    ]);
+  });
+
   it('lists the same 89 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();

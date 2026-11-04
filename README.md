@@ -134,6 +134,7 @@ key.
 | Workspace limits | `workspace_limits_get`, `workspace_limits_set`, `workspace_resale_pricing_get`, `workspace_resale_pricing_set` |
 | Services | `service_list`, `service_show`, `service_create`, `service_set`, `service_rename`, `service_delete`, `service_pause`, `service_resume`, `service_sleep_status`, `service_sleep_set`, `service_scale`, `service_get_port`, `service_set_port`, `addon_create` |
 | Deploys | `deploy_redeploy`, `deploy_restart`, `deploy_events` |
+| Functions | `functions_deploy`, `functions_invoke`, `functions_logs`, `functions_list` |
 | Templates | `template_list`, `template_show`, `template_deploy` |
 | Logs and metrics | `logs_tail`, `metrics_get` |
 | Secrets | `secrets_list`, `secrets_set`, `secrets_delete`, `secrets_refs` |

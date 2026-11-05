@@ -4,4 +4,4 @@ dependencies:
       value: "lizard"
       description: "Deploy and manage apps, databases, and infra on Lizard"
       transport: "streamable_http"
-      url: "https://employ-woman-g1q2.us-east-1.onlizard.com/mcp"
+      url: "https://lizard.build/mcp"

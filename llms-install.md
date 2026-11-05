@@ -3,7 +3,7 @@
 Lizard (lizard.build) hosts Lizard MCP at:
 
 ```text
-https://employ-woman-g1q2.us-east-1.onlizard.com/mcp
+https://lizard.build/mcp
 ```
 
 Use **Streamable HTTP**. Cline calls this transport `streamableHttp`.
@@ -34,7 +34,7 @@ Merge this entry into `mcpServers`, preserving all other entries:
   "mcpServers": {
     "lizard": {
       "type": "streamableHttp",
-      "url": "https://employ-woman-g1q2.us-east-1.onlizard.com/mcp",
+      "url": "https://lizard.build/mcp",
       "headers": {
         "Authorization": "Bearer REPLACE_WITH_YOUR_LIZARD_API_KEY"
       },
@@ -79,7 +79,7 @@ settings.mcpServers = {
   ...settings.mcpServers,
   lizard: {
     type: 'streamableHttp',
-    url: 'https://employ-woman-g1q2.us-east-1.onlizard.com/mcp',
+    url: 'https://lizard.build/mcp',
     headers: { Authorization: `Bearer ${key}` },
     disabled: false,
     autoApprove: [],

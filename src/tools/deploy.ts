@@ -1,5 +1,5 @@
 import { redactServiceDetails } from "../lib/service-redaction.js";
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";

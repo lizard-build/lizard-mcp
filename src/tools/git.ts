@@ -1,11 +1,9 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
-import { withScope } from "../lib/api.js";
+import { platformUrl, withScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
-
-const PLATFORM_URL = process.env.PLATFORM_URL || "https://lizard.build";
 
 interface GitHubStatus {
   installed: boolean;
@@ -73,7 +71,7 @@ export function registerGitTools(server: McpServer, ctx: ToolContext) {
     handle(async () => {
       const status = await ctx.api.get<GitHubStatus>("/api/github/status");
       if (status.installed) return { installed: true, installationId: status.installationId };
-      return { installed: false, installUrl: `${PLATFORM_URL}/api/auth/github/install` };
+      return { installed: false, installUrl: `${platformUrl()}/api/auth/github/install` };
     }),
   );
 }

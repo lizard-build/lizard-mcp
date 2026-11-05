@@ -1,13 +1,29 @@
 const DEFAULT_BASE_URL = "https://lizard.build";
-const baseURL = process.env.PLATFORM_URL || DEFAULT_BASE_URL;
+
+let configuredUrl: string | undefined;
 
 /**
- * The Billing page a user opens in a browser. PLATFORM_URL may be an internal
- * address, so only a public https one is used for links.
+ * Where the tools send their REST calls: the platform's public address, so every call goes
+ * through the edge with the caller's own token and meets every route's checks. Lizard Git
+ * lives at /git on that address too. A host that runs these tools in-process (the platform
+ * itself, at lizard.build/mcp) sets it with setPlatformUrl; otherwise PLATFORM_URL, else
+ * https://lizard.build.
+ */
+export function platformUrl(): string {
+  return (configuredUrl || process.env.PLATFORM_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
+}
+
+export function setPlatformUrl(url: string): void {
+  configuredUrl = url;
+}
+
+/**
+ * The Billing page a user opens in a browser. The platform address may be an
+ * internal one, so only a public https one is used for links.
  */
 export function billingPageUrl(): string {
-  const base = /^https:\/\//.test(baseURL) ? baseURL.replace(/\/+$/, "") : DEFAULT_BASE_URL;
-  return `${base}/profile/account-billing`;
+  const base = platformUrl();
+  return `${/^https:\/\//.test(base) ? base : DEFAULT_BASE_URL}/profile/account-billing`;
 }
 const USER_AGENT = "lizard-mcp/0.1.0";
 
@@ -36,8 +52,8 @@ export function withScope(path: string, scope?: ResourceScope): string {
 
 /**
  * Only ever reachable from the stdio entry point: over HTTP a token is
- * present by the time a client is built, since requireBearerAuth already
- * verified one. See stdio.ts for why an empty token gets that far.
+ * present by the time a client is built, since the HTTP entry verified one.
+ * See stdio.ts for why an empty token gets that far.
  */
 export const NO_TOKEN_MESSAGE =
   "No Lizard API key. Create one with `lizard keys create`, then set LIZARD_TOKEN and restart the server.";
@@ -147,9 +163,9 @@ export function isNotFound(err: unknown): boolean {
 /**
  * Builds a REST client bound to one caller's access token. Unlike
  * lizard-cli's `api.ts` (a single process authenticated as one user for its
- * whole lifetime, so the token lives in module state), lizard-mcp is a
- * stateless multi-tenant HTTP service handling concurrent requests from
- * different users — the token must be a parameter, not global mutable state.
+ * whole lifetime, so the token lives in module state), the MCP endpoint serves
+ * concurrent requests from different users — the token must be a parameter,
+ * not global mutable state.
  */
 export function createApiClient(accessToken: string) {
   async function request<T = any>(
@@ -167,7 +183,7 @@ export function createApiClient(accessToken: string) {
     };
     if (body !== undefined) headers["Content-Type"] = "application/json";
 
-    const res = await fetchWithCause(baseURL + path, {
+    const res = await fetchWithCause(platformUrl() + path, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,

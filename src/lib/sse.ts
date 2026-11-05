@@ -1,6 +1,4 @@
-import { NO_TOKEN_MESSAGE } from "./api.js";
-
-const PLATFORM_URL = process.env.PLATFORM_URL || "https://lizard.build";
+import { NO_TOKEN_MESSAGE, platformUrl } from "./api.js";
 
 export interface SSEEvent {
   event: string;
@@ -24,7 +22,7 @@ export async function collectSSE(
   if (!accessToken) throw new Error(NO_TOKEN_MESSAGE);
 
   const controller = new AbortController();
-  const res = await fetch(PLATFORM_URL + path, {
+  const res = await fetch(platformUrl() + path, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "text/event-stream" },
     signal: controller.signal,
   });

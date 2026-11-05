@@ -1,0 +1,47 @@
+name: Release
+
+# A package.json version with no tag yet becomes a GitHub release with the package
+# attached (npm pack). dragonlabs-platform installs that file and serves these tools at
+# https://lizard.build/mcp, so a tool change reaches it by a version bump here, then the
+# new release URL in the platform's server/package.json.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: New version?
+        id: version
+        run: |
+          v=$(node -p "require('./package.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$v" >/dev/null; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.version.outputs.new == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - if: steps.version.outputs.new == 'true'
+        run: |
+          npm ci
+          npm test
+          npm pack
+      - if: steps.version.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: >-
+          gh release create "v$VERSION" "lizard-build-mcp-$VERSION.tgz"
+          --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes

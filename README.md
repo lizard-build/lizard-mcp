@@ -11,7 +11,7 @@ spawn a local process instead ([below](#run-it-over-stdio)). A hosted instance
 runs at:
 
 ```
-https://employ-woman-g1q2.us-east-1.onlizard.com/mcp
+https://lizard.build/mcp
 ```
 
 Every request carries a bearer token. A client that speaks OAuth gets one
@@ -28,13 +28,13 @@ key**. Either way the key is shown once.
 ### Claude Code
 
 ```bash
-claude mcp add --transport http lizard https://employ-woman-g1q2.us-east-1.onlizard.com/mcp
+claude mcp add --transport http lizard https://lizard.build/mcp
 ```
 
 Claude Code runs the OAuth flow on first use. To skip it and use a key:
 
 ```bash
-claude mcp add --transport http lizard https://employ-woman-g1q2.us-east-1.onlizard.com/mcp \
+claude mcp add --transport http lizard https://lizard.build/mcp \
   --header "Authorization: Bearer liz_your_key"
 ```
 
@@ -50,7 +50,7 @@ approval on, then check the connection with `whoami`. No local build is needed.
 {
   "mcpServers": {
     "lizard": {
-      "url": "https://employ-woman-g1q2.us-east-1.onlizard.com/mcp",
+      "url": "https://lizard.build/mcp",
       "headers": { "Authorization": "Bearer liz_your_key" }
     }
   }
@@ -71,7 +71,7 @@ in place of the hosted URL.
 ### Check the connection
 
 ```bash
-curl -sS -X POST https://employ-woman-g1q2.us-east-1.onlizard.com/mcp \
+curl -sS -X POST https://lizard.build/mcp \
   -H "Authorization: Bearer liz_your_key" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
@@ -227,15 +227,14 @@ here, then point the platform's `server/package.json` at the new release.
 
 ## Deployed instance
 
-This server itself runs as a Lizard app: `lizard-mcp` in mikelun's workspace,
-deployed straight from this repo (git-source, auto-redeploys on push to `main`).
+Since 2026-11 the hosted server is part of the Lizard platform, at
+`https://lizard.build/mcp`: dragonlabs-platform installs this package (see
+above) and serves it from `server/src/routes/mcp.ts`. There is no separate
+service to deploy.
 
-```
-https://employ-woman-g1q2.us-east-1.onlizard.com/mcp
-```
-
-`PUBLIC_URL` is set on that service to match, so `allowedHosts`/OAuth resource
-metadata line up with the real domain — see `src/index.ts`.
+The first address, `https://employ-woman-g1q2.us-east-1.onlizard.com/mcp`,
+still works: the platform answers on it with that address as the resource, so
+connectors added with it keep their sign-in.
 
 ## Publishing to Codex / ChatGPT
 

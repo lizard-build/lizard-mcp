@@ -1,5 +1,5 @@
 {
-  "cliVersion": "4.0.90",
+  "cliVersion": "4.0.100",
   "note": "Every Lizard CLI command, and the Lizard MCP tools that do the same job. An empty mcp list says why. scripts/audit-cli.ts checks this against `lizard --help --json`; test/unit/parity.test.ts checks the tool names.",
   "mcpOnly": {
     "template_list": "Templates are in the dashboard and the API, not the Lizard CLI.",
@@ -1195,6 +1195,34 @@
       "mcp": [
         "functions_list"
       ]
+    },
+    "gha": {
+      "mcp": [],
+      "why": "Checks GitHub runner setup against a local repository; use the local CLI."
+    },
+    "gha connect": {
+      "mcp": [],
+      "why": "Connects a GitHub organization and billing; requires the organization owner in the browser or local CLI."
+    },
+    "gha migrate": {
+      "mcp": [],
+      "why": "Edits GitHub Actions workflow files in a local checkout; use the local CLI."
+    },
+    "gha jobs": {
+      "mcp": [],
+      "why": "Lists GitHub Actions runner jobs; this server has no tool for that API."
+    },
+    "fn": {
+      "mcp": [],
+      "why": "A group of the Functions commands below."
+    },
+    "fn rm": {
+      "mcp": [],
+      "why": "Deletes a function and its schedule; this server has no function deletion tool. Use the CLI after confirmation."
+    },
+    "fn env": {
+      "mcp": [],
+      "why": "Exports AWS credentials to a local shell; use the local CLI."
     }
   }
 }

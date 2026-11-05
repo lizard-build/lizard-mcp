@@ -1,4 +1,4 @@
-import { apiErrorFrom, APIError, fetchWithCause, NO_TOKEN_MESSAGE } from "./api.js";
+import { apiErrorFrom, APIError, fetchWithCause, NO_TOKEN_MESSAGE, platformUrl } from "./api.js";
 
 /**
  * Lizard Git (lizard.build/git) with the caller's own token, the way lizard-cli's
@@ -9,10 +9,10 @@ import { apiErrorFrom, APIError, fetchWithCause, NO_TOKEN_MESSAGE } from "./api.
  * Scoped API keys are refused by Lizard Git: they don't say which repositories they reach.
  */
 
-/** LIZARD_GIT_URL, else <PLATFORM_URL>/git (https://lizard.build/git). */
+/** LIZARD_GIT_URL, else <platformUrl()>/git (https://lizard.build/git). */
 export function gitURL(): string {
   const explicit = process.env.LIZARD_GIT_URL;
-  const base = (explicit || `${process.env.PLATFORM_URL || "https://lizard.build"}/git`).replace(/\/+$/, "");
+  const base = (explicit || `${platformUrl()}/git`).replace(/\/+$/, "");
   const parsed = new URL(base);
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
   // The caller's token goes there with every request.

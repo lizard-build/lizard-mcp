@@ -1,8 +1,25 @@
 {
   "name": "@lizard-build/mcp",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
   "description": "MCP server exposing Lizard to ChatGPT and other MCP clients",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lizard-build/lizard-mcp.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    }
+  },
+  "bin": {
+    "lizard-mcp": "dist/stdio.js"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -13,12 +30,13 @@
     "test:watch": "vitest test/unit",
     "typecheck": "tsc --noEmit",
     "audit:cli": "tsx scripts/audit-cli.ts",
-    "audit:live": "tsx test/live/full-audit.ts"
+    "audit:live": "tsx test/live/full-audit.ts",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "express": "^5.2.1",
-    "zod": "^4.4.3"
+    "zod": "^3.25.0 || ^4.0.0"
   },
   "devDependencies": {
     "@modelcontextprotocol/inspector": "^2.12.0",

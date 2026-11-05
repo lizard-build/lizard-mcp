@@ -1,9 +1,10 @@
 import * as zlib from "node:zlib";
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
 import { resolveProject } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
+import { platformUrl } from "../lib/api.js";
 
 // Lizard Functions (AWS Lambda-compatible): the same contract as `lizard fn deploy --json`.
 // Files come as text; the service infers packages from imports (or a requirements.txt /
@@ -11,7 +12,6 @@ import { handle } from "../lib/tool-helpers.js";
 // new code take traffic once it has started. A failed deploy returns `code`, `remediation`
 // (a corrected call) and the log tail, while the previous version keeps serving.
 
-const PLATFORM = (process.env.PLATFORM_URL || "https://lizard.build").replace(/\/+$/, "");
 const REGION_ALIASES: Record<string, string> = { us: "us-east-1", eu: "eu-west-lim-a" };
 const RUNTIMES: Record<string, string> = { python: "python3.13", node: "nodejs22.x", typescript: "nodejs22.x", ruby: "ruby3.3", go: "provided.al2023", rust: "provided.al2023" };
 
@@ -80,7 +80,7 @@ export function registerFunctionsTools(server: McpServer, ctx: ToolContext) {
     const h: Record<string, string> = { authorization: `Bearer ${ctx.accessToken}`, "user-agent": "lizard-mcp/0.1.0", ...headers };
     if (body !== undefined) h["content-type"] = "application/json";
     if (target) h["x-lizard-target"] = target;
-    const res = await fetch(`${PLATFORM}/api/functions/accounts/${a.accountId}/aws/${path.replace(/^\//, "")}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(900_000) });
+    const res = await fetch(`${platformUrl()}/api/functions/accounts/${a.accountId}/aws/${path.replace(/^\//, "")}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(900_000) });
     const text = await res.text();
     let data: any; try { data = text ? JSON.parse(text) : null; } catch { data = text; }
     if (!res.ok) throw new Error((data && (data.message || data.Message || data.error)) || `${res.status} ${res.statusText}`);

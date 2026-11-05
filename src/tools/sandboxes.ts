@@ -1,9 +1,9 @@
 import { posix } from "node:path";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { redactServiceDetails } from "../lib/service-redaction.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
-import { APIError, apiErrorFrom, NO_TOKEN_MESSAGE, withQuery } from "../lib/api.js";
+import { APIError, apiErrorFrom, NO_TOKEN_MESSAGE, platformUrl, withQuery } from "../lib/api.js";
 import { resolveProject } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
 
@@ -25,8 +25,7 @@ const change = { readOnlyHint: false, destructiveHint: true, idempotentHint: fal
 
 async function request<T>(ctx: ToolContext, route: string, method = "GET", body?: unknown, signal?: AbortSignal, text = false): Promise<T> {
   if (!ctx.accessToken) throw new Error(NO_TOKEN_MESSAGE);
-  const base = process.env.PLATFORM_URL || "https://lizard.build";
-  const response = await fetch(base + route, {
+  const response = await fetch(platformUrl() + route, {
     method, signal,
     headers: { Authorization: `Bearer ${ctx.accessToken}`, "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),

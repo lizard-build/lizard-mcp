@@ -215,6 +215,16 @@ To test real sandbox resources, set `LIZARD_API_KEY`, `LIZARD_PROJECT_ID`, and `
 
 `test/manual/mcp-inspector.md` covers end-to-end checks against a stub platform and a live one.
 
+## Use it as a package
+
+Every new `version` in `package.json` is released on `main` as
+`@lizard-build/mcp` (a GitHub release with the `npm pack` file attached, see
+`.github/workflows/release.yml`). The package exports `getServer(token)`, which
+builds the MCP server for one caller, and `setPlatformUrl(url)` for a host that
+runs it in-process. dragonlabs-platform installs it to serve the tools at
+`https://lizard.build/mcp`: to ship a tool change there, bump the version
+here, then point the platform's `server/package.json` at the new release.
+
 ## Deployed instance
 
 This server itself runs as a Lizard app: `lizard-mcp` in mikelun's workspace,

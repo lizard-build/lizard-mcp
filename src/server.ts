@@ -15,6 +15,9 @@ import { registerFunctionsTools } from "./tools/functions.js";
 import { registerSandboxTools } from "./tools/sandboxes.js";
 import { registerRepoTools } from "./tools/repos.js";
 
+// For a host that runs the tools in-process (the platform, at lizard.build/mcp).
+export { setPlatformUrl } from "./lib/api.js";
+
 export interface ToolContext {
   api: ApiClient;
   /** The raw access token, for tools such as logs.tail build mode
@@ -178,7 +181,7 @@ secrets_refs) rather than raw credentials.
 
 /**
  * Builds one McpServer + one ToolContext per request, bound to the calling
- * user's access token. lizard-mcp is a stateless multi-tenant service (see
+ * user's access token. The endpoint is stateless and serves every user (see
  * lib/api.ts), so nothing here is cached or reused across requests.
  */
 export function getServer(accessToken: string): McpServer {

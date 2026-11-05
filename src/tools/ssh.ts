@@ -1,11 +1,9 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
-import { APIError, apiErrorFrom } from "../lib/api.js";
-
-const PLATFORM_URL = process.env.PLATFORM_URL || "https://lizard.build";
+import { APIError, apiErrorFrom, platformUrl } from "../lib/api.js";
 
 // Safety backstop only (not a designed feature): if a remote command produces
 // no output at all for this long, give up rather than holding the MCP tool
@@ -52,7 +50,7 @@ interface ExecResult {
 
 async function execAndCollect(appId: string, cmd: string, accessToken: string): Promise<ExecResult> {
   const controller = new AbortController();
-  const res = await fetch(`${PLATFORM_URL}/api/apps/${appId}/exec`, {
+  const res = await fetch(`${platformUrl()}/api/apps/${appId}/exec`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,

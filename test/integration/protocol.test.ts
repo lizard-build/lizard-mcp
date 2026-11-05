@@ -136,6 +136,73 @@ describe('real MCP transports against a local REST fixture', () => {
     expect(writes()).toEqual([]);
   });
 
+  it.each(['stdio', 'HTTP'])('masks credentials in resource mutation responses over %s', async (transport) => {
+    services.addons = [{ id: 'db1', name: 'cache', addonType: 'redis' }];
+    const peer = transport === 'HTTP' ? httpClient : client;
+    const cases: Array<[string, Record<string, unknown>, string]> = [
+      ['sandbox_create', { project: 'demo', confirm: true }, 'running'],
+      ['sandbox_set_timeout', { sandboxId: 's1', lifetimeMs: 60000 }, 'running'],
+      ['sandbox_pause', { sandboxId: 's1' }, 'paused'],
+      ['sandbox_resume', { sandboxId: 's1' }, 'running'],
+      ['sandbox_fork', { sandboxId: 's1', confirm: true }, 'running'],
+      ['service_create', { project: 'demo', name: 'new-app', region: 'us-east-1' }, 'running'],
+      ['addon_create', { project: 'demo', type: 'redis', region: 'us-east-1' }, 'running'],
+      ['service_rename', { project: 'demo', service: 'cache', name: 'renamed' }, 'running'],
+      ['service_pause', { project: 'demo', service: 'web' }, 'paused'],
+      ['service_resume', { project: 'demo', service: 'cache' }, 'running'],
+      ['service_sleep_status', { project: 'demo', service: 'web' }, 'running'],
+      ['service_sleep_set', { project: 'demo', service: 'web', enabled: true }, 'running'],
+      ['deploy_redeploy', { project: 'demo', service: 'web' }, 'running'],
+      ['deploy_restart', { project: 'demo', service: 'web' }, 'running'],
+      ['deploy_events', { project: 'demo', service: 'web' }, 'running'],
+    ];
+    for (const [name, args, status] of cases) {
+      const record = { id: 's1', status, accessToken: 'fixture-mutation-token',
+        envVars: '{"KEY":"fixture-mutation-env"}',
+        connection: { password: 'fixture-mutation-password' },
+        url: 'https://s1.example/?lizard_token=fixture-port-token&port=3000' };
+      reply = call => ({ body: call.url.endsWith('/fork') ? [{ sandbox: record }] : record });
+      const result = await peer.callTool({ name, arguments: args });
+      expect(result.isError, name).not.toBe(true);
+      for (const secret of ['fixture-mutation-token', 'fixture-mutation-env', 'fixture-mutation-password', 'fixture-port-token']) {
+        expect(JSON.stringify(result), name).not.toContain(secret);
+      }
+      expect(texts(result), name).toContain(status);
+      expect(texts(result), name).toContain('***');
+    }
+  });
+
+  it('preserves access credentials for an explicit port exposure', async () => {
+    const exposed = { accessToken: 'fixture-port-token', url: 'https://s1.example/?lizard_token=fixture-port-token' };
+    reply = () => ({ body: exposed });
+    expect((await invoke('sandbox_expose_port', { sandboxId: 's1', port: 3000 })).structuredContent).toEqual(exposed);
+  });
+
+  it.each(['stdio', 'HTTP'])('masks config and secret write responses without changing requests over %s', async (transport) => {
+    const peer = transport === 'HTTP' ? httpClient : client;
+    const secret = 'fixture-config-secret';
+    reply = call => ({ body: call.method === 'GET'
+      ? [{ key: 'API_KEY', value: secret }]
+      : { ok: true, secrets: { shared: { API_KEY: secret } }, services: [{ envVars: { API_KEY: secret } }] } });
+    const config = { secrets: { shared: { API_KEY: secret } } };
+    for (const [name, args] of [
+      ['config_apply', { project: 'demo', config }],
+      ['secrets_set', { project: 'demo', values: { API_KEY: secret } }],
+      ['secrets_delete', { project: 'demo', keys: ['API_KEY'], confirm: true }],
+    ] as const) {
+      const result = await peer.callTool({ name, arguments: args });
+      expect(result.isError, name).not.toBe(true);
+      expect(JSON.stringify(result), name).not.toContain(secret);
+      expect(result.structuredContent, name).toMatchObject({ ok: true });
+      expect(texts(result), name).toContain('***');
+    }
+    expect(writes().map(call => call.body)).toEqual([
+      config,
+      config,
+      { secrets: { shared: { API_KEY: null } } },
+    ]);
+  });
+
   it('lists the same 93 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
@@ -550,3 +617,4 @@ describe('real MCP transports against a local REST fixture', () => {
     expect(response.status).toBe(500);
   });
 });
+

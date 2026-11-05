@@ -1175,6 +1175,26 @@
       "mcp": [
         "workspace_delete"
       ]
+    },
+    "fn deploy": {
+      "mcp": [
+        "functions_deploy"
+      ]
+    },
+    "fn invoke": {
+      "mcp": [
+        "functions_invoke"
+      ]
+    },
+    "fn logs": {
+      "mcp": [
+        "functions_logs"
+      ]
+    },
+    "fn ls": {
+      "mcp": [
+        "functions_list"
+      ]
     }
   }
 }

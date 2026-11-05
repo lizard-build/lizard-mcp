@@ -11,6 +11,7 @@ import { registerVolumeTools } from "./tools/volumes.js";
 import { registerGitTools } from "./tools/git.js";
 import { registerConfigTools } from "./tools/config.js";
 import { registerTemplateTools } from "./tools/templates.js";
+import { registerFunctionsTools } from "./tools/functions.js";
 import { registerSandboxTools } from "./tools/sandboxes.js";
 import { registerRepoTools } from "./tools/repos.js";
 
@@ -195,6 +196,7 @@ export function getServer(accessToken: string): McpServer {
   registerGitTools(server, ctx);
   registerConfigTools(server, ctx);
   registerTemplateTools(server, ctx);
+  registerFunctionsTools(server, ctx);
   registerSandboxTools(server, ctx);
   registerRepoTools(server, ctx);
 

@@ -1075,6 +1075,54 @@
         "open_world_justification": "Lizard's own API only.",
         "destructive_justification": "Pure read."
       }
+    },
+    "functions_deploy": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Creates or updates a function in the user's project.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Replaces the function's code and settings (a new version; the previous one can be rolled back)."
+      }
+    },
+    "functions_invoke": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Runs the user's function, which may have side effects of its own.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Runs the user's code, which can change data it has access to."
+      }
+    },
+    "functions_logs": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads a function's log lines, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
+    },
+    "functions_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists a project's functions, no writes.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read."
+      }
     }
   },
   "test_cases": [

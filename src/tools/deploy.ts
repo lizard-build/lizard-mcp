@@ -1,3 +1,4 @@
+import { redactServiceDetails } from "../lib/service-redaction.js";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
@@ -18,7 +19,7 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
       const proj = await resolveProject(ctx.api, project);
       const svc = await resolveService(ctx.api, proj.id, service, { workspaceId: proj.workspaceId });
       if (svc.kind !== "app") throw new Error(`"${service}" is an addon — redeploy only applies to apps.`);
-      return ctx.api.post(`/api/apps/${svc.id}/redeploy`, undefined, { "X-Deploy-Source": "mcp" });
+      return ctx.api.post(`/api/apps/${svc.id}/redeploy`, undefined, { "X-Deploy-Source": "mcp" }).then(redactServiceDetails);
     }),
   );
 
@@ -35,7 +36,7 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
       const proj = await resolveProject(ctx.api, project);
       const svc = await resolveService(ctx.api, proj.id, service, { workspaceId: proj.workspaceId });
       if (svc.kind !== "app") throw new Error(`"${service}" is an addon — restart only applies to apps.`);
-      return ctx.api.post(`/api/apps/${svc.id}/restart`, undefined, { "X-Deploy-Source": "mcp" });
+      return ctx.api.post(`/api/apps/${svc.id}/restart`, undefined, { "X-Deploy-Source": "mcp" }).then(redactServiceDetails);
     }),
   );
 
@@ -44,7 +45,7 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Get deploy history",
       description:
-        "Use this when the user wants to see recent deploy/build history and current replica status for a Lizard service.",
+        "Use this when the user wants to see recent deploy/build history and current replica status for a Lizard service. Credentials and log snippets are masked. Use logs_tail to read build logs when the user asks to inspect them.",
       inputSchema: { project: z.string().min(1), service: z.string().min(1) },
       annotations: { title: "Get deploy history", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
@@ -59,7 +60,8 @@ export function registerDeployTools(server: McpServer, ctx: ToolContext) {
         // whole call, matching lizard-cli's events.ts.
         ctx.api.get<{ pods?: unknown[] }>(`/api/apps/${svc.id}/pod-status`).catch(() => ({ pods: [] })),
       ]);
-      return { deployEvents, podStatus };
+      return redactServiceDetails({ deployEvents, podStatus });
     }),
   );
 }
+

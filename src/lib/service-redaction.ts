@@ -1,4 +1,6 @@
 const MASK = "***";
+const credentialName = (name: string) => /password|secret|token|privatekey|accesskey|apikey|authorization|credential|signature/.test(name);
+const normalizeName = (name: string) => name.replace(/[_-]/g, "").toLowerCase();
 
 /** Keep field names, but no values from a credential or environment map. */
 function maskValues(value: unknown): unknown {
@@ -17,17 +19,25 @@ export function redactServiceDetails(value: unknown): unknown {
     if (typeof value === "string") {
       try {
         const url = new URL(value);
+        let changed = false;
         if (url.username || url.password) {
           url.username = MASK;
           url.password = MASK;
-          return url.toString();
+          changed = true;
         }
+        for (const name of new Set(url.searchParams.keys())) {
+          if (credentialName(normalizeName(name))) {
+            url.searchParams.set(name, MASK);
+            changed = true;
+          }
+        }
+        if (changed) return url.toString();
       } catch { /* Not a URL. */ }
     }
     return value;
   }
   return Object.fromEntries(Object.entries(value).map(([key, item]) => {
-    const name = key.replace(/[_-]/g, "").toLowerCase();
+    const name = normalizeName(key);
     if (name === "envvars" && typeof item === "string") {
       try { return [key, JSON.stringify(maskValues(JSON.parse(item)))]; }
       catch { return [key, MASK]; }
@@ -35,9 +45,10 @@ export function redactServiceDetails(value: unknown): unknown {
     if (["envvars", "connection", "credentials", "secrets"].includes(name)) {
       return [key, maskValues(item)];
     }
-    if (/password|secret|token|privatekey|accesskey/.test(name) || name === "logsnippet") {
+    if (credentialName(name) || ["dsn", "connectionstring", "logsnippet"].includes(name)) {
       return [key, item == null ? item : MASK];
     }
     return [key, redactServiceDetails(item)];
   }));
 }
+

@@ -33,4 +33,21 @@ describe('service details returned for status queries', () => {
     });
     expect(result).toEqual({ repoUrl: 'https://***:***@example.com/repo', publicUrl: 'https://example.com/repo', domain: null });
   });
+
+  it('masks credential aliases and non-URL connection strings', () => {
+    expect(redactServiceDetails({ apiKey: 'a', api_key: 'b', authorization: 'Bearer c',
+      dsn: 'host=db password=d', connectionString: 'Password=e;Server=db', id: 's1' }))
+      .toEqual({ apiKey: '***', api_key: '***', authorization: '***', dsn: '***', connectionString: '***', id: 's1' });
+  });
+
+  it('removes repeated credential query parameters while preserving routing parameters', () => {
+    const result = redactServiceDetails({ url: 'https://s1.example/path?lizard_token=a&access_token=b&api-key=c&access_token=d&port=3000' }) as { url: string };
+    const url = new URL(result.url);
+    expect(url.searchParams.getAll('access_token')).toEqual(['***']);
+    expect(url.searchParams.get('lizard_token')).toBe('***');
+    expect(url.searchParams.get('api-key')).toBe('***');
+    expect(url.searchParams.get('port')).toBe('3000');
+    expect(url.pathname).toBe('/path');
+  });
 });
+

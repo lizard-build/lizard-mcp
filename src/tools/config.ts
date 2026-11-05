@@ -4,6 +4,7 @@ import type { ToolContext } from "../server.js";
 import { withScope } from "../lib/api.js";
 import { resolveProject } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
+import { redactServiceDetails } from "../lib/service-redaction.js";
 
 export function registerConfigTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
@@ -11,7 +12,7 @@ export function registerConfigTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Apply bulk config",
       description:
-        "Apply a configuration to a Lizard project in one request (services, addons and secrets). The config body is passed through verbatim and can overwrite or remove existing fields. Uses the Lizard API config:apply endpoint; docs: https://lizard.build/docs/.",
+        "Apply a configuration to a Lizard project in one request (services, addons and secrets). The config body is passed through verbatim and can overwrite or remove existing fields. Credentials in the response are masked; use service_show or secrets_list with reveal:true only when the user asks for them. Uses the Lizard API config:apply endpoint; docs: https://lizard.build/docs/.",
       inputSchema: {
         project: z.string().min(1),
         config: z
@@ -25,7 +26,8 @@ export function registerConfigTools(server: McpServer, ctx: ToolContext) {
     },
     handle(async ({ project, config }) => {
       const proj = await resolveProject(ctx.api, project);
-      return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, { workspaceId: proj.workspaceId }), config);
+      return ctx.api.post(withScope(`/api/projects/${proj.id}/config:apply`, { workspaceId: proj.workspaceId }), config).then(redactServiceDetails);
     }),
   );
 }
+

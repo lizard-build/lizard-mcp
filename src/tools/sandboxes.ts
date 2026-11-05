@@ -125,6 +125,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     title: "Create sandbox",
     description:
       "Create a sandbox (a Firecracker microVM) in an explicit project. Uses billed cloud resources and returns its ID. " +
+      "Access credentials are masked; use sandbox_show with reveal:true only when the user asks for them. " +
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
       "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). Sizes: small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
       "Pass snapshotId to start from a saved snapshot (it keeps the snapshot's size, so leave size out) and volume to mount a persistent volume. " +
@@ -168,10 +169,10 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       await destroy(ctx, sandboxId);
       extra.signal.throwIfAborted();
     }
-    return {
+    return redactServiceDetails({
       ...sandbox, sandboxId, projectId: resolved.id, template: sandbox.template ?? (fromSnapshot ? undefined : template ?? "interpreter"),
       workdir: "/workspace", lifetimeMs,
-    };
+    });
   }));
 
   server.registerTool("sandbox_exec", {
@@ -242,7 +243,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     description: "Change how long a sandbox lives from now: it stops and loses its files (except an attached volume) when the time runs out. Use it to keep a sandbox the user still needs, or to end one sooner. 60,000 ms to 86,400,000 ms (a day).",
     inputSchema: { sandboxId: id, lifetimeMs: lifetime },
     annotations: { title: "Set sandbox lifetime", ...change, idempotentHint: true },
-  }, handle(async ({ sandboxId, lifetimeMs }) => ctx.api.post(`${route(sandboxId)}/timeout`, { timeoutMs: lifetimeMs })));
+  }, handle(async ({ sandboxId, lifetimeMs }) => redactServiceDetails(await ctx.api.post(`${route(sandboxId)}/timeout`, { timeoutMs: lifetimeMs }))));
 
   for (const op of ["pause", "resume"] as const) {
     server.registerTool(`sandbox_${op}`, {
@@ -261,7 +262,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
         120_000,
         (s) => (["running", "pausing", "paused", "resuming"].includes(s.status) ? null : `Sandbox ${sandboxId} is ${s.status}.`),
       );
-      return { sandboxId, status: final.status, ...(final.status !== target ? { note: `Still ${final.status}; check again with sandbox_show.` } : {}), queued };
+      return { sandboxId, status: final.status, ...(final.status !== target ? { note: `Still ${final.status}; check again with sandbox_show.` } : {}), queued: redactServiceDetails(queued) };
     }));
   }
 
@@ -326,7 +327,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     const list = Array.isArray(results) ? results : [];
     const started = list.filter((r) => r.sandbox).length;
     if (started === 0) throw new Error(`No copy started: ${list.map((r) => r.error).filter(Boolean).join("; ") || "fork failed"}`);
-    return { sourceId: sandboxId, requested: count, started, failed: list.length - started, results: list };
+    return { sourceId: sandboxId, requested: count, started, failed: list.length - started, results: redactServiceDetails(list) };
   }));
 
   server.registerTool("sandbox_expose_port", {
@@ -346,3 +347,4 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     return { sandboxId, port, status: "unexposed" };
   }));
 }
+

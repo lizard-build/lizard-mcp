@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.lizard-build/lizard-mcp",
+  "title": "Lizard MCP",
+  "description": "Run isolated code and manage apps, databases and deployments on Lizard (lizard.build).",
+  "repository": {
+    "url": "https://github.com/lizard-build/lizard-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "websiteUrl": "https://lizard.build/sandboxes",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://employ-woman-g1q2.us-east-1.onlizard.com/mcp"
+    }
+  ]
+}

@@ -144,6 +144,7 @@ key.
 | Lizard Git | `repo_list`, `repo_create`, `repo_show`, `repo_delete`, `repo_files`, `repo_read_file`, `repo_commit`, `repo_commits`, `pr_list`, `pr_create`, `pr_show`, `pr_merge`, `ci_run_list`, `ci_run_show` |
 | Sandboxes | `sandbox_list`, `sandbox_show`, `sandbox_create`, `sandbox_exec`, `sandbox_read_file`, `sandbox_write_file`, `sandbox_list_files`, `sandbox_delete`, `sandbox_set_timeout`, `sandbox_pause`, `sandbox_resume`, `sandbox_snapshot`, `sandbox_snapshot_list`, `sandbox_snapshot_delete`, `sandbox_fork`, `sandbox_expose_port`, `sandbox_unexpose_port` |
 | Config as code | `config_apply` |
+| Support | `support`, `support_list`, `support_show`, `support_reply` |
 
 Tool names use `snake_case` (not the MCP spec's permitted dots) to match OpenAI's function-name pattern `^[a-zA-Z0-9_-]{1,64}$`, which some ChatGPT/Codex surfaces enforce directly.
 

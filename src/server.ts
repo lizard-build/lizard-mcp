@@ -14,6 +14,8 @@ import { registerTemplateTools } from "./tools/templates.js";
 import { registerFunctionsTools } from "./tools/functions.js";
 import { registerSandboxTools } from "./tools/sandboxes.js";
 import { registerRepoTools } from "./tools/repos.js";
+import { registerSupportTools } from "./tools/support.js";
+import { supportNotice, withNotice } from "./lib/support-inbox.js";
 
 // For a host that runs the tools in-process (the platform, at lizard.build/mcp).
 export { setPlatformUrl } from "./lib/api.js";
@@ -160,6 +162,19 @@ A call that fails with WORKSPACE_SANDBOX_LIMIT or WORKSPACE_USAGE_LIMIT will fai
 way on retry: read workspace_limits_get, then pause or delete a sandbox, scale a service
 down, or ask the owner to raise the limit.
 
+## Support
+
+When Lizard itself is broken, open a ticket with the support tool instead of working around it
+silently: a tool fails twice with a server error or timeout, or a sandbox or service is stuck or
+crashed with no cause in its own logs. Do that without asking (it describes Lizard's failure, not
+the user's code), then tell the user the ticket id. When a plan or limit blocks the task and the
+user needs more (vCPU, regions, sizes, a bigger plan), ask the user first, then open one with
+kind "limits" or "billing". Fill expected, actual and repro; never include secrets, keys, source
+code or customer data. Filing the same problem again returns similarId instead of a new ticket.
+Never open tickets for the user's own build errors or app bugs. The team's replies are added to
+the end of later tool results ("📬 Lizard support replied on T-…"): tell the user, and answer
+questions with support_reply.
+
 ## Writes are immediate and real
 
 There is no separate platform-side confirmation step — a tool call is the action.
@@ -188,6 +203,13 @@ export function getServer(accessToken: string): McpServer {
   const server = new McpServer({ name: "lizard", version: "0.1.0" }, { instructions: INSTRUCTIONS });
   const ctx: ToolContext = { api: createApiClient(accessToken), accessToken };
 
+  // Support replies the caller hasn't read ride along on the next tool results (lib/support-inbox.ts).
+  const register = server.registerTool.bind(server) as (...a: any[]) => any;
+  (server as any).registerTool = (name: string, config: unknown, cb: (...a: any[]) => any) =>
+    register(name, config, name.startsWith("support")
+      ? cb
+      : async (...args: any[]) => withNotice(await cb(...args), await supportNotice(ctx.api, accessToken)));
+
   registerAccountTools(server, ctx);
   registerServiceTools(server, ctx);
   registerDeployTools(server, ctx);
@@ -202,6 +224,7 @@ export function getServer(accessToken: string): McpServer {
   registerFunctionsTools(server, ctx);
   registerSandboxTools(server, ctx);
   registerRepoTools(server, ctx);
+  registerSupportTools(server, ctx);
 
   return server;
 }

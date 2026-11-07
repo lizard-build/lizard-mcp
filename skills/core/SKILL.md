@@ -71,6 +71,13 @@ an error through the MCP protocol. Common cases:
 - Validation error — a required field was missing or malformed; check the schema and
   retry with corrected arguments.
 - Payment required — see [Billing](#billing).
+- Lizard itself failing (the same tool fails twice with a server error or timeout, a sandbox
+  or service stuck or crashed with no cause in its own logs) — open a ticket with `support`
+  (kind `bug`, with `expected`, `actual`, `repro`) without asking, and tell the user its id.
+  A plan or limit the user needs raised — ask them first, then `support` with kind `limits`.
+  The team's replies are added to later tool results; answer with `support_reply`, read the
+  thread with `support_show`, list tickets with `support_list`. Never put secrets, keys,
+  source code or customer data in a ticket.
 
 ## Billing
 

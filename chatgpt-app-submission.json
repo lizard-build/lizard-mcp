@@ -1123,6 +1123,54 @@
         "open_world_justification": "Lizard's own API only.",
         "destructive_justification": "Pure read."
       }
+    },
+    "support": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Sends a support ticket to the Lizard team.",
+        "open_world_justification": "Calls the Lizard API only.",
+        "destructive_justification": "Sends a support ticket to the Lizard team. Marked as a write so clients can ask before sending it."
+      }
+    },
+    "support_reply": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Adds a message to the user's support ticket.",
+        "open_world_justification": "Calls the Lizard API only.",
+        "destructive_justification": "Adds a message to the user's support ticket. Marked as a write so clients can ask before sending it."
+      }
+    },
+    "support_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists the user's support tickets.",
+        "open_world_justification": "Calls the Lizard API only.",
+        "destructive_justification": "No resources change."
+      }
+    },
+    "support_show": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Shows one support ticket and its messages.",
+        "open_world_justification": "Calls the Lizard API only.",
+        "destructive_justification": "No resources change."
+      }
     }
   },
   "test_cases": [

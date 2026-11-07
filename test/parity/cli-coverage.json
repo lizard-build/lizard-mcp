@@ -1223,6 +1223,26 @@
     "fn env": {
       "mcp": [],
       "why": "Exports AWS credentials to a local shell; use the local CLI."
+    },
+    "support open": {
+      "mcp": [
+        "support"
+      ]
+    },
+    "support list": {
+      "mcp": [
+        "support_list"
+      ]
+    },
+    "support show": {
+      "mcp": [
+        "support_show"
+      ]
+    },
+    "support reply": {
+      "mcp": [
+        "support_reply"
+      ]
     }
   }
 }

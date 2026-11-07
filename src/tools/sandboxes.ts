@@ -271,17 +271,20 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
   server.registerTool("sandbox_snapshot", {
     title: "Snapshot sandbox",
     description:
-      "Save a running sandbox, memory and processes included, as a private snapshot to start new sandboxes from (sandbox_create with snapshotId). " +
+      "Save a running sandbox's files as a private snapshot to start new sandboxes from (sandbox_create with snapshotId); new sandboxes boot fresh with those files. " +
+      "full:true also saves memory and running processes so new sandboxes continue where it was (slower the more RAM is in use); use it only when something running must carry over. " +
       "The sandbox keeps running. scope says where it may be restored: user (any of your projects), workspace, or project. Snapshots are billed for storage until deleted. " +
       "Waits up to 2 minutes for the snapshot to be ready; a large one may still be processing, so check sandbox_snapshot_list.",
     inputSchema: {
       sandboxId: id,
       name: z.string().min(1).max(100).describe("A name for the snapshot"),
       scope: z.enum(["user", "workspace", "project"]).optional(),
+      full: z.boolean().optional().describe("Also save memory and running processes (slower). Default: files only."),
     },
     annotations: { title: "Snapshot sandbox", ...change },
-  }, handle(async ({ sandboxId, name, scope }) => {
-    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(scope ? { scope } : {}) });
+  }, handle(async ({ sandboxId, name, scope, full }: { sandboxId: string; name: string; scope?: "user" | "workspace" | "project"; full?: boolean }) => {
+    // full is sent as memory:true, which every server accepts; no choice = the platform default (files only).
+    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(scope ? { scope } : {}), ...(full ? { memory: true } : {}) });
     return waitFor(
       () => ctx.api.get<SnapshotRecord>(`/api/sandbox-snapshots/${encodeURIComponent(started.id)}`),
       (s) => s.status === "ready",

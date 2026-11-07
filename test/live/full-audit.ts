@@ -377,7 +377,7 @@ async function volumesAndSandboxes() {
     note("the port refuses a request without the token", without === 401 || without === 403, `status ${without}`);
   }
   await step("sandbox_unexpose_port", { sandboxId: S.sb, port: 8000 }, "removes the URL", {});
-  await step("sandbox_pause", { sandboxId: S.sb }, "pauses (memory kept)", { check: (r) => (r.sc?.status === "paused" ? undefined : JSON.stringify(r.sc)) });
+  await step("sandbox_pause", { sandboxId: S.sb, full: true }, "pauses (memory kept)", { check: (r) => (r.sc?.status === "paused" ? undefined : JSON.stringify(r.sc)) });
   await step("sandbox_resume", { sandboxId: S.sb }, "resumes", { check: (r) => (r.sc?.status === "running" ? undefined : JSON.stringify(r.sc)) });
   await step("sandbox_exec", { sandboxId: S.sb, command: "cat /workspace/hello.txt; pgrep -f http.server >/dev/null && echo server-alive", confirm: true }, "files and the background process survived", {
     check: (r) => (r.sc?.stdout?.includes("Привет") && r.sc?.stdout?.includes("server-alive") ? undefined : r.sc?.stdout),

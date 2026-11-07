@@ -248,12 +248,15 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     server.registerTool(`sandbox_${op}`, {
       title: op === "pause" ? "Pause sandbox" : "Resume sandbox",
       description: op === "pause"
-        ? "Save a running sandbox's memory, processes and files, and stop it. A paused sandbox costs only its storage and does not count against the running-sandbox limit. Waits up to 2 minutes for it to finish pausing. Undo with sandbox_resume."
-        : "Start a paused sandbox again, where it left off: same memory, processes and files. Waits up to 2 minutes for it to run. If resuming fails, the saved state is kept; try again.",
-      inputSchema: { sandboxId: id },
+        ? "Stop a running sandbox, keeping its files. By default the pause keeps files only (about a second): running processes end and sandbox_resume boots it fresh. With full:true it also keeps memory and running processes (slower the more RAM is in use), so the resume continues where it stopped; use that only when something running must survive. A paused sandbox costs only its storage and does not count against the running-sandbox limit. Waits up to 2 minutes for it to finish pausing. Undo with sandbox_resume."
+        : "Start a paused sandbox again with its files; after a full pause also its memory and running processes. Waits up to 2 minutes for it to run. If resuming fails, the saved state is kept; try again.",
+      inputSchema: op === "pause"
+        ? { sandboxId: id, full: z.boolean().optional().describe("Also keep memory and running processes (slower). Default: files only.") }
+        : { sandboxId: id },
       annotations: { title: op === "pause" ? "Pause sandbox" : "Resume sandbox", ...change, idempotentHint: true },
-    }, handle(async ({ sandboxId }) => {
-      const queued = await ctx.api.post<{ status?: string }>(`${route(sandboxId)}/${op}`, {});
+    }, handle(async ({ sandboxId, full }: { sandboxId: string; full?: boolean }) => {
+      // full is sent as memory:true, which every server accepts; no choice = the platform default (files only).
+      const queued = await ctx.api.post<{ status?: string }>(`${route(sandboxId)}/${op}`, op === "pause" && full ? { memory: true } : {});
       const target = op === "pause" ? "paused" : "running";
       const final = await waitFor(
         () => ctx.api.get<{ id: string; status: string }>(route(sandboxId)),

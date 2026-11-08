@@ -127,7 +127,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       "Access credentials are masked; use sandbox_show with reveal:true only when the user asks for them. " +
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
       "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). Sizes: small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
-      "Pass snapshotId to start from a saved snapshot (it keeps the snapshot's size, so leave size out) and volume to mount a persistent volume. " +
+      "Pass snapshotId to start from a snapshot taken in this project (it keeps the snapshot's size, so leave size out; a snapshot of another project is refused) and volume to mount a persistent volume. " +
       "No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
     inputSchema: {
       project: z.string().min(1),
@@ -273,18 +273,19 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     description:
       "Save a running sandbox's files as a private snapshot to start new sandboxes from (sandbox_create with snapshotId); new sandboxes boot fresh with those files. " +
       "full:true also saves memory and running processes so new sandboxes continue where it was (slower the more RAM is in use); use it only when something running must carry over. " +
-      "The sandbox keeps running. scope says where it may be restored: user (any of your projects), workspace, or project. Snapshots are billed for storage until deleted. " +
+      "The sandbox keeps running. A snapshot restores only in its own project and region. Snapshots are billed for storage until deleted. " +
       "Waits up to 2 minutes for the snapshot to be ready; a large one may still be processing, so check sandbox_snapshot_list.",
+    // No scope input: the platform keeps every snapshot to its own project. The SDK drops
+    // unknown keys, so an older client that still sends scope gets no error.
     inputSchema: {
       sandboxId: id,
       name: z.string().min(1).max(100).describe("A name for the snapshot"),
-      scope: z.enum(["user", "workspace", "project"]).optional(),
       full: z.boolean().optional().describe("Also save memory and running processes (slower). Default: files only."),
     },
     annotations: { title: "Snapshot sandbox", ...change },
-  }, handle(async ({ sandboxId, name, scope, full }: { sandboxId: string; name: string; scope?: "user" | "workspace" | "project"; full?: boolean }) => {
+  }, handle(async ({ sandboxId, name, full }: { sandboxId: string; name: string; full?: boolean }) => {
     // full is sent as memory:true, which every server accepts; no choice = the platform default (files only).
-    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(scope ? { scope } : {}), ...(full ? { memory: true } : {}) });
+    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(full ? { memory: true } : {}) });
     return waitFor(
       () => ctx.api.get<SnapshotRecord>(`/api/sandbox-snapshots/${encodeURIComponent(started.id)}`),
       (s) => s.status === "ready",
@@ -295,7 +296,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_snapshot_list", {
     title: "List sandbox snapshots",
-    description: "List the saved sandbox snapshots of a project: ID, name, template, region, size, scope and status.",
+    description: "List the saved sandbox snapshots of a project: ID, name, template, region, size and status. Each one restores only in this project.",
     inputSchema: { project: z.string().min(1) }, annotations: { title: "List sandbox snapshots", ...readOnly },
   }, handle(async ({ project }) => {
     const resolved = await resolveProject(ctx.api, project);

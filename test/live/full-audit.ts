@@ -389,7 +389,7 @@ async function volumesAndSandboxes() {
   if (S.plain) {
     await waitFor("sandbox_show", { sandboxId: S.plain }, "reads running", (r) => r.sc?.status === "running", 120_000, 2000);
     await step("sandbox_write_file", { sandboxId: S.plain, path: "state.txt", content: "kept in the snapshot", confirm: true }, "writes a file", {});
-    const snap = await step("sandbox_snapshot", { sandboxId: S.plain, name: `${NAME}-snap`, scope: "project" }, "takes a snapshot", { check: (r) => (r.sc?.id ? undefined : "no id") });
+    const snap = await step("sandbox_snapshot", { sandboxId: S.plain, name: `${NAME}-snap` }, "takes a snapshot", { check: (r) => (r.sc?.id ? undefined : "no id") });
     S.snap = snap.sc?.id;
     if (S.snap && snap.sc?.status !== "ready") {
       await waitFor("sandbox_snapshot_list", { project: S.project }, "snapshot becomes ready", (r) => (r.sc?.items ?? []).some((s: any) => s.id === S.snap && s.status === "ready"), 600_000, 5000);

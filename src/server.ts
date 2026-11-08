@@ -44,7 +44,7 @@ sandbox_write_file and sandbox_list_files with its returned ID. Clean up with
 sandbox_delete when the task ends. These tools do not deploy an app.
 sandbox_pause keeps files and stops billing for compute (processes end; full:true also keeps
 memory and processes); sandbox_resume brings it back. sandbox_snapshot saves a running sandbox's files (full:true: also memory and processes) to
-start new ones from (sandbox_create with snapshotId); sandbox_fork starts live copies.
+start new ones from in the same project (sandbox_create with snapshotId); sandbox_fork starts live copies.
 sandbox_expose_port gives a port an HTTPS URL that carries its access token. A persistent volume (volume_create,
 then sandbox_create with volume) keeps files after the sandbox is gone.
 Creation uses billed resources. Create, execute, write, and delete require confirm:true

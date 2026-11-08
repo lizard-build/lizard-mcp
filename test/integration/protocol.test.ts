@@ -454,7 +454,7 @@ describe('real MCP transports against a local REST fixture', () => {
       if (call.url === '/api/sandboxes/s1/expose/3000' && call.method === 'POST') return { body: { hostname: 'h', url: 'https://h', port: 3000 } };
       return { body: [] };
     };
-    expect((await invoke('sandbox_snapshot', { sandboxId: 's1', name: 'base', scope: 'project' })).structuredContent).toMatchObject({ id: 'snap1', status: 'ready' });
+    expect((await invoke('sandbox_snapshot', { sandboxId: 's1', name: 'base' })).structuredContent).toMatchObject({ id: 'snap1', status: 'ready' });
     await invoke('sandbox_snapshot_list', { project: 'demo' });
     expect((await invoke('sandbox_fork', { sandboxId: 's1', count: 2 })).isError).toBe(true); // no confirm
     expect((await invoke('sandbox_fork', { sandboxId: 's1', count: 2, confirm: true })).structuredContent).toMatchObject({ started: 1, failed: 1 });
@@ -472,8 +472,25 @@ describe('real MCP transports against a local REST fixture', () => {
       'GET /api/sandboxes/s1/files/list?path=%2Fworkspace%2Fsrc',
       'DELETE /api/sandbox-snapshots/snap1',
     ]);
+    expect(writes().find((w) => w.url.endsWith('/snapshot'))?.body).toEqual({ name: 'base' });
     expect(writes().find((w) => w.url.endsWith('/fork'))?.body).toEqual({ count: 2 });
     expect(writes().find((w) => w.url.endsWith('/timeout'))?.body).toEqual({ timeoutMs: 600000 });
+  });
+  it('keeps snapshots to their own project: no scope input, and an old client that sends one still works', async () => {
+    reply = (call) => call.method === 'POST' ? { body: { id: 'snap1', status: 'processing' } } : { body: { id: 'snap1', status: 'ready' } };
+    const tools = (await client.listTools()).tools;
+    const snapshot = tools.find((t) => t.name === 'sandbox_snapshot');
+    expect(Object.keys(snapshot?.inputSchema.properties ?? {})).toEqual(['sandboxId', 'name', 'full']);
+    expect(snapshot?.inputSchema.additionalProperties).not.toBe(false);
+    expect(snapshot?.description).toContain('restores only in its own project');
+    expect(snapshot?.description).not.toMatch(/scope|any of your projects/);
+    expect(tools.find((t) => t.name === 'sandbox_create')?.description).toContain('a snapshot of another project is refused');
+    for (const scope of ['user', 'workspace', 'project']) {
+      const result = await invoke('sandbox_snapshot', { sandboxId: 's1', name: 'base', scope });
+      expect(result.isError, scope).not.toBe(true);
+      expect(result.structuredContent).toMatchObject({ id: 'snap1', status: 'ready' });
+    }
+    expect(writes().map((w) => w.body)).toEqual([{ name: 'base' }, { name: 'base' }, { name: 'base' }]);
   });
   it('creates, resizes and deletes volumes, and refuses to delete an attached one', async () => {
     reply = (call) => {

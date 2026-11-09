@@ -1,5 +1,5 @@
 {
-  "cliVersion": "4.0.100",
+  "cliVersion": "4.0.108",
   "note": "Every Lizard CLI command, and the Lizard MCP tools that do the same job. An empty mcp list says why. scripts/audit-cli.ts checks this against `lizard --help --json`; test/unit/parity.test.ts checks the tool names.",
   "mcpOnly": {
     "template_list": "Templates are in the dashboard and the API, not the Lizard CLI.",
@@ -867,6 +867,10 @@
         "sandbox_set_timeout"
       ]
     },
+    "sandbox cpu": {
+      "mcp": [],
+      "why": "Not covered yet: shows the CPU model a running sandbox runs on."
+    },
     "sandbox exec": {
       "mcp": [
         "sandbox_exec"
@@ -1223,6 +1227,10 @@
     "fn env": {
       "mcp": [],
       "why": "Exports AWS credentials to a local shell; use the local CLI."
+    },
+    "support": {
+      "mcp": [],
+      "why": "A group of the commands below."
     },
     "support open": {
       "mcp": [

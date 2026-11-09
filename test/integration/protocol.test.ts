@@ -203,11 +203,11 @@ describe('real MCP transports against a local REST fixture', () => {
     ]);
   });
 
-  it('lists the same 97 tools over stdio and HTTP', async () => {
+  it('lists the same 103 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
     expect(stdio.tools.map((tool) => tool.name).sort()).toEqual(http.tools.map((tool) => tool.name).sort());
-    expect(stdio.tools).toHaveLength(97);
+    expect(stdio.tools).toHaveLength(103);
     expect(stdio.tools.some((tool) => tool.name === 'ssh_exec')).toBe(false);
     for (const tool of stdio.tools) {
       expect(tool.title, tool.name).toBeTruthy();
@@ -608,7 +608,7 @@ describe('real MCP transports against a local REST fixture', () => {
     const anonymous = makeClient();
     try {
       await anonymous.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: { ...env(), LIZARD_TOKEN: '', LIZARD_API_KEY: '' }, stderr: 'pipe' }));
-      expect((await anonymous.listTools()).tools).toHaveLength(97);
+      expect((await anonymous.listTools()).tools).toHaveLength(103);
       expect(texts(await anonymous.callTool({ name: 'whoami', arguments: {} }))).toContain('No Lizard API key');
     } finally { await anonymous.close(); }
   });

@@ -352,5 +352,66 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     await ctx.api.delete(`${route(sandboxId)}/expose/${port}`);
     return { sandboxId, port, status: "unexposed" };
   }));
-}
 
+  // ── schedules: wake a sandbox on a timer, run a prompt or command, sleep again ──
+  const scheduleId = z.string().min(1).max(64).regex(/^sch_[a-f0-9]{16}$/).describe("Schedule ID (sch_...) from sandbox_schedule or sandbox_schedule_list");
+  const scheduleFields = {
+    every: z.string().max(20).optional().describe('How often, e.g. "5m", "1h", "1d" (1 minute at least). Give every or cron.'),
+    cron: z.string().max(200).optional().describe('Cron instead: "m h dom mon dow", e.g. "*/5 * * * *", "0 9 * * mon-fri", "@daily".'),
+    timezone: z.string().max(64).optional().describe("IANA time zone for cron, e.g. Europe/Berlin (default UTC)."),
+    prompt: z.string().min(1).max(100_000).optional().describe("Run the sandbox's coding agent with this prompt; each run is a new conversation, so keep state in files."),
+    command: z.string().min(1).max(20_000).optional().describe("Or run this shell command, in /workspace as root; success = exit code 0."),
+    agent: z.string().max(40).optional().describe("Agent for prompt (codex, claude, ...). Default codex."),
+    model: z.string().max(120).optional(),
+    timeoutSeconds: z.number().int().min(10).max(21_600).optional().describe("Stop a run after this long (default 600)."),
+    keepMemory: z.boolean().optional().describe("Sleep with memory between runs: processes and open apps survive (slower pause). Default false: files only."),
+    name: z.string().max(100).optional(),
+  };
+  const scheduleRoute = (sid: string) => `/api/sandbox-schedules/${encodeURIComponent(sid)}`;
+
+  server.registerTool("sandbox_schedule", {
+    title: "Schedule sandbox runs",
+    description: "Run a prompt (the coding agent) or a shell command in a sandbox on a schedule: each run wakes the sandbox if it is paused, runs, and puts it back to sleep, so the user pays only while it is awake. A sandbox already running is left running. Files in /workspace carry over between runs. A run still going when the next is due makes that one skip; five failures in a row switch the schedule off. The sandbox must not expire: a sandbox with a lifetime is deleted when it runs out, schedules with it. Get the user's approval first: every run uses billed compute (and model usage for prompts).",
+    inputSchema: { sandboxId: id, ...scheduleFields, confirm: z.literal(true) },
+    annotations: { title: "Schedule sandbox runs", ...write },
+  }, handle(async ({ sandboxId, confirm: _c, ...body }) => {
+    if (!body.every && !body.cron) throw new Error("Give every (e.g. \"5m\") or cron.");
+    if (!body.prompt === !body.command) throw new Error("Give prompt or command, one of them.");
+    return ctx.api.post(`${route(sandboxId)}/schedules`, body);
+  }));
+
+  server.registerTool("sandbox_schedule_list", {
+    title: "List sandbox schedules",
+    description: "List schedules: one sandbox's, or all the user can see. Shows when each runs next, what it runs, and how its last run went.",
+    inputSchema: { sandboxId: id.optional() },
+    annotations: { title: "List sandbox schedules", ...readOnly },
+  }, handle(async ({ sandboxId }) => ctx.api.get(sandboxId ? `${route(sandboxId)}/schedules` : "/api/sandbox-schedules")));
+
+  server.registerTool("sandbox_schedule_update", {
+    title: "Change sandbox schedule",
+    description: "Change a schedule: its timing, what it runs, its timeout, or switch it off (enabled:false) and on again.",
+    inputSchema: { scheduleId, ...scheduleFields, enabled: z.boolean().optional() },
+    annotations: { title: "Change sandbox schedule", ...change, idempotentHint: true },
+  }, handle(async ({ scheduleId: sid, ...body }) => ctx.api.patch(scheduleRoute(sid), body)));
+
+  server.registerTool("sandbox_schedule_run", {
+    title: "Run sandbox schedule now",
+    description: "Start a run of the schedule now (within a few seconds; also switches it back on). Check the result with sandbox_schedule_runs.",
+    inputSchema: { scheduleId },
+    annotations: { title: "Run sandbox schedule now", ...write, openWorldHint: false },
+  }, handle(async ({ scheduleId: sid }) => ctx.api.post(`${scheduleRoute(sid)}/run`, {})));
+
+  server.registerTool("sandbox_schedule_runs", {
+    title: "Sandbox schedule runs",
+    description: "A schedule's recent runs, newest first: status (succeeded, failed, timeout, interrupted, running), duration, exit code, the end of the output and any error.",
+    inputSchema: { scheduleId, limit: z.number().int().min(1).max(200).optional() },
+    annotations: { title: "Sandbox schedule runs", ...readOnly },
+  }, handle(async ({ scheduleId: sid, limit }) => ctx.api.get(withQuery(`${scheduleRoute(sid)}/runs`, { limit }))));
+
+  server.registerTool("sandbox_schedule_delete", {
+    title: "Delete sandbox schedule",
+    description: "Delete a schedule. The sandbox itself stays as it is.",
+    inputSchema: { scheduleId },
+    annotations: { title: "Delete sandbox schedule", ...change, idempotentHint: true },
+  }, handle(async ({ scheduleId: sid }) => ctx.api.delete(scheduleRoute(sid))));
+}

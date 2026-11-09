@@ -902,6 +902,41 @@
         "sandbox_unexpose_port"
       ]
     },
+    "sandbox schedule": {
+      "mcp": [
+        "sandbox_schedule"
+      ]
+    },
+    "sandbox schedules": {
+      "mcp": [
+        "sandbox_schedule_list"
+      ]
+    },
+    "sandbox schedule-show": {
+      "mcp": [
+        "sandbox_schedule_list"
+      ]
+    },
+    "sandbox schedule-set": {
+      "mcp": [
+        "sandbox_schedule_update"
+      ]
+    },
+    "sandbox schedule-run": {
+      "mcp": [
+        "sandbox_schedule_run"
+      ]
+    },
+    "sandbox schedule-runs": {
+      "mcp": [
+        "sandbox_schedule_runs"
+      ]
+    },
+    "sandbox unschedule": {
+      "mcp": [
+        "sandbox_schedule_delete"
+      ]
+    },
     "sandbox desktop": {
       "mcp": [],
       "why": "An interactive terminal, desktop or live stream; not a fit for one tool call."

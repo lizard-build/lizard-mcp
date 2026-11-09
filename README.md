@@ -142,7 +142,7 @@ key.
 | Volumes | `volume_list`, `volume_create`, `volume_resize`, `volume_delete` |
 | GitHub connection | `git_connect`, `git_checkout`, `git_status` |
 | Lizard Git | `repo_list`, `repo_create`, `repo_show`, `repo_delete`, `repo_files`, `repo_read_file`, `repo_commit`, `repo_commits`, `pr_list`, `pr_create`, `pr_show`, `pr_merge`, `ci_run_list`, `ci_run_show` |
-| Sandboxes | `sandbox_list`, `sandbox_show`, `sandbox_create`, `sandbox_exec`, `sandbox_read_file`, `sandbox_write_file`, `sandbox_list_files`, `sandbox_delete`, `sandbox_set_timeout`, `sandbox_pause`, `sandbox_resume`, `sandbox_snapshot`, `sandbox_snapshot_list`, `sandbox_snapshot_delete`, `sandbox_fork`, `sandbox_expose_port`, `sandbox_unexpose_port` |
+| Sandboxes | `sandbox_list`, `sandbox_show`, `sandbox_create`, `sandbox_exec`, `sandbox_read_file`, `sandbox_write_file`, `sandbox_list_files`, `sandbox_delete`, `sandbox_set_timeout`, `sandbox_pause`, `sandbox_resume`, `sandbox_snapshot`, `sandbox_snapshot_list`, `sandbox_snapshot_delete`, `sandbox_fork`, `sandbox_expose_port`, `sandbox_unexpose_port`, `sandbox_schedule`, `sandbox_schedule_list`, `sandbox_schedule_update`, `sandbox_schedule_run`, `sandbox_schedule_runs`, `sandbox_schedule_delete` |
 | Config as code | `config_apply` |
 | Support | `support`, `support_list`, `support_show`, `support_reply` |
 

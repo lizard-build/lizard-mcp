@@ -126,14 +126,15 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       "Create a sandbox (a Firecracker microVM) in an explicit project. Uses billed cloud resources and returns its ID. " +
       "Access credentials are masked; use sandbox_show with reveal:true only when the user asks for them. " +
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
-      "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). Sizes: small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
+      "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). " +
+      "Sizes: mini (1 vCPU / 2 GB; only the base, claude, codex and interpreter templates, no volume), small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
       "Pass snapshotId to start from a saved snapshot (it keeps the snapshot's size, so leave size out) and volume to mount a persistent volume. " +
       "No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
     inputSchema: {
       project: z.string().min(1),
       lifetimeMs: lifetime.default(300000).describe("Lifetime in ms, 60,000 to 86,400,000 (a day); extend later with sandbox_set_timeout"),
       template: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional().describe("Template name; default interpreter"),
-      size: z.enum(["small", "medium", "large"]).optional().describe("Default small; not with snapshotId"),
+      size: z.enum(["mini", "small", "medium", "large"]).optional().describe("Default small; mini only for base, claude, codex or interpreter without a volume; not with snapshotId"),
       region: z.string().min(1).optional().describe(`Region code (region_list); default ${DEFAULT_SANDBOX_REGION}, or the volume's or snapshot's region`),
       volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project (volume_list)"),
       snapshotId: snapshotId.optional(),

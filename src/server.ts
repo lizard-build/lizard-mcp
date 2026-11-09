@@ -145,8 +145,8 @@ service_create with repoUrl lizard:owner/name. Lizard Git refuses API keys with 
 
 ## Sandbox limits
 
-An account's limit counts vCPU of running sandboxes (Small 2, Medium 4, Large 8; paused
-ones don't count), across all of the owner's workspaces: up to 4 Small on the trial,
+An account's limit counts vCPU of running sandboxes (Mini 1, Small 2, Medium 4, Large 8;
+paused ones don't count), across all of the owner's workspaces: up to 4 Small on the trial,
 40 vCPU on Pro, 220 on Pro 5x, 1,200 on Pro 20x. Past it, sandbox_create, sandbox_fork
 and sandbox_resume fail with SANDBOX_LIMIT_REACHED; the error's structuredContent has
 unit ("vcpu"), limit, running (vCPU in use) and needed. Pause or delete an idle sandbox,

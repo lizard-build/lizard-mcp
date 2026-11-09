@@ -435,6 +435,20 @@ describe('real MCP transports against a local REST fixture', () => {
     expect((await invoke('sandbox_create', { project: 'demo', lifetimeMs: 86400001, confirm: true })).isError).toBe(true);
     expect(writes()).toEqual([]);
   });
+  it('creates a Mini sandbox and passes on the server refusing it for a template', async () => {
+    reply = () => ({ body: { sandboxId: 's1', size: 'mini' } });
+    const created = await invoke('sandbox_create', { project: 'demo', template: 'claude', size: 'mini', confirm: true });
+    expect(created.structuredContent).toMatchObject({ sandboxId: 's1', size: 'mini' });
+    expect(writes().map((w) => w.body)).toEqual([
+      { template: 'claude', projectId: 'p1', size: 'mini', timeoutMs: 300000, region: 'us-east-1', metadata: { integration: 'lizard-mcp' } },
+    ]);
+    reply = () => ({ status: 400, body: { error: "Size 'mini' is not available for template 'desktop' in region 'us-east-1'", code: 'SANDBOX_SIZE_NOT_ALLOWED' } });
+    const refused = await invoke('sandbox_create', { project: 'demo', template: 'desktop', size: 'mini', confirm: true });
+    expect(refused.isError).toBe(true);
+    expect(texts(refused)).toContain("Size 'mini' is not available for template 'desktop'");
+    expect(refused.structuredContent).toMatchObject({ error: { status: 400, code: 'SANDBOX_SIZE_NOT_ALLOWED' } });
+    expect((await invoke('sandbox_create', { project: 'demo', size: 'tiny', confirm: true })).isError).toBe(true);
+  });
   it('pauses and resumes a sandbox and waits for the state', async () => {
     let state = 'running';
     reply = (call) => {

@@ -105,9 +105,13 @@ next charge, an unpaid invoice, and `billingUrl`. Use it when a create fails wit
 for, change or cancel a plan: give the user the link, never ask for card details in
 chat, and retry the failed call after they say they are done.
 
-Sandbox limits count vCPU of running sandboxes (Mini 1, Small 2, Medium 4, Large 8;
-paused ones don't count), across all of the owner's workspaces: up to 4 Small on the trial,
-40 vCPU on Pro, 220 on Pro 5x, 1,200 on Pro 20x. Past the limit, a sandbox create,
+The trial runs 1 Small and 2 Mini at a time (US regions only); Medium and Large unlock
+after the first payment. On the trial, Medium or Large fails with `TRIAL_SANDBOX_SIZE`,
+another region with `TRIAL_SANDBOX_REGION`, and a second Small or a third Mini with
+`TRIAL_SIZE_RUNNING` (pause or delete one, or use the other size).
+Paid accounts' sandbox limits count vCPU of running sandboxes (Mini 1, Small 2, Medium 4,
+Large 8; paused ones don't count), across all of the owner's workspaces: 40 vCPU on Pro,
+220 on Pro 5x, 1,200 on Pro 20x. Past the limit, a sandbox create,
 fork or resume fails with `SANDBOX_LIMIT_REACHED`; `structuredContent.error` has
 `unit` (`vcpu`), `limit`, `running` and `needed`. Pause or delete an idle sandbox,
 pick a smaller size, or tell the user a higher Pro tier raises it.

@@ -128,6 +128,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
       "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). " +
       "Sizes: mini (1 vCPU / 2 GB; only the base, claude, codex and interpreter templates, no volume), small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
+      "The trial runs 1 Small and 2 Mini at a time, US regions only; Medium and Large unlock after the first payment. " +
       "Pass snapshotId to start from a saved snapshot (it keeps the snapshot's size, so leave size out) and volume to mount a persistent volume. " +
       "No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
     inputSchema: {

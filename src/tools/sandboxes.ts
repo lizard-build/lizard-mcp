@@ -128,12 +128,12 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
       "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). " +
       "Sizes: mini (1 vCPU / 2 GB; only the base, claude, codex and interpreter templates, no volume), small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
-      "The trial runs 1 Small and 2 Mini at a time, US regions only; Medium and Large unlock after the first payment. " +
+      "The trial runs 1 Small and 2 Mini at a time, US regions only, and deletes each sandbox after 1 hour at most (lifetimeMs above 3,600,000 fails with TRIAL_SANDBOX_LIFETIME); Medium, Large and longer lifetimes unlock after the first payment. " +
       "Pass snapshotId to start from a saved snapshot (it keeps the snapshot's size, so leave size out) and volume to mount a persistent volume. " +
       "No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
     inputSchema: {
       project: z.string().min(1),
-      lifetimeMs: lifetime.default(300000).describe("Lifetime in ms, 60,000 to 86,400,000 (a day); extend later with sandbox_set_timeout"),
+      lifetimeMs: lifetime.default(300000).describe("Lifetime in ms, 60,000 to 86,400,000 (a day; at most 3,600,000 on the trial); extend later with sandbox_set_timeout"),
       template: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional().describe("Template name; default interpreter"),
       size: z.enum(["mini", "small", "medium", "large"]).optional().describe("Default small; mini only for base, claude, codex or interpreter without a volume; not with snapshotId"),
       region: z.string().min(1).optional().describe(`Region code (region_list); default ${DEFAULT_SANDBOX_REGION}, or the volume's or snapshot's region`),
@@ -241,7 +241,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_set_timeout", {
     title: "Set sandbox lifetime",
-    description: "Change how long a sandbox lives from now: it stops and loses its files (except an attached volume) when the time runs out. Use it to keep a sandbox the user still needs, or to end one sooner. 60,000 ms to 86,400,000 ms (a day).",
+    description: "Change how long a sandbox lives from now: it stops and loses its files (except an attached volume) when the time runs out. Use it to keep a sandbox the user still needs, or to end one sooner. 60,000 ms to 86,400,000 ms (a day). On the trial a sandbox cannot live past 1 hour from its creation (TRIAL_SANDBOX_LIFETIME, with latestExpiresAt).",
     inputSchema: { sandboxId: id, lifetimeMs: lifetime },
     annotations: { title: "Set sandbox lifetime", ...change, idempotentHint: true },
   }, handle(async ({ sandboxId, lifetimeMs }) => redactServiceDetails(await ctx.api.post(`${route(sandboxId)}/timeout`, { timeoutMs: lifetimeMs }))));

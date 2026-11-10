@@ -249,15 +249,13 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     server.registerTool(`sandbox_${op}`, {
       title: op === "pause" ? "Pause sandbox" : "Resume sandbox",
       description: op === "pause"
-        ? "Stop a running sandbox, keeping its files. By default the pause keeps files only (about a second): running processes end and sandbox_resume boots it fresh. With full:true it also keeps memory and running processes (slower the more RAM is in use), so the resume continues where it stopped; use that only when something running must survive. A paused sandbox costs only its storage and does not count against the running-sandbox limit. Waits up to 2 minutes for it to finish pausing. Undo with sandbox_resume."
-        : "Start a paused sandbox again with its files; after a full pause also its memory and running processes. Waits up to 2 minutes for it to run. If resuming fails, the saved state is kept; try again.",
-      inputSchema: op === "pause"
-        ? { sandboxId: id, full: z.boolean().optional().describe("Also keep memory and running processes (slower). Default: files only.") }
-        : { sandboxId: id },
+        ? "Stop a running sandbox, keeping its files only (about a second): running processes end and sandbox_resume boots it fresh, so start them again after it. A paused sandbox costs only its storage and does not count against the running-sandbox limit. Waits up to 2 minutes for it to finish pausing. Undo with sandbox_resume."
+        : "Start a paused sandbox again with its files (it boots fresh; start your processes again). Waits up to 2 minutes for it to run. If resuming fails, the saved state is kept; try again.",
+      inputSchema: { sandboxId: id },
       annotations: { title: op === "pause" ? "Pause sandbox" : "Resume sandbox", ...change, idempotentHint: true },
-    }, handle(async ({ sandboxId, full }: { sandboxId: string; full?: boolean }) => {
-      // full is sent as memory:true, which every server accepts; no choice = the platform default (files only).
-      const queued = await ctx.api.post<{ status?: string }>(`${route(sandboxId)}/${op}`, op === "pause" && full ? { memory: true } : {});
+    }, handle(async ({ sandboxId }: { sandboxId: string }) => {
+      // Every pause keeps files only (memory pauses are off on the platform).
+      const queued = await ctx.api.post<{ status?: string }>(`${route(sandboxId)}/${op}`, {});
       const target = op === "pause" ? "paused" : "running";
       const final = await waitFor(
         () => ctx.api.get<{ id: string; status: string }>(route(sandboxId)),
@@ -273,19 +271,18 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     title: "Snapshot sandbox",
     description:
       "Save a running sandbox's files as a private snapshot to start new sandboxes from (sandbox_create with snapshotId); new sandboxes boot fresh with those files. " +
-      "full:true also saves memory and running processes so new sandboxes continue where it was (slower the more RAM is in use); use it only when something running must carry over. " +
+      "Memory and running processes are not saved. " +
       "The sandbox keeps running. scope says where it may be restored: user (any of your projects), workspace, or project. Snapshots are billed for storage until deleted. " +
       "Waits up to 2 minutes for the snapshot to be ready; a large one may still be processing, so check sandbox_snapshot_list.",
     inputSchema: {
       sandboxId: id,
       name: z.string().min(1).max(100).describe("A name for the snapshot"),
       scope: z.enum(["user", "workspace", "project"]).optional(),
-      full: z.boolean().optional().describe("Also save memory and running processes (slower). Default: files only."),
     },
     annotations: { title: "Snapshot sandbox", ...change },
-  }, handle(async ({ sandboxId, name, scope, full }: { sandboxId: string; name: string; scope?: "user" | "workspace" | "project"; full?: boolean }) => {
-    // full is sent as memory:true, which every server accepts; no choice = the platform default (files only).
-    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(scope ? { scope } : {}), ...(full ? { memory: true } : {}) });
+  }, handle(async ({ sandboxId, name, scope }: { sandboxId: string; name: string; scope?: "user" | "workspace" | "project" }) => {
+    // Files only: snapshots never keep memory.
+    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(scope ? { scope } : {}) });
     return waitFor(
       () => ctx.api.get<SnapshotRecord>(`/api/sandbox-snapshots/${encodeURIComponent(started.id)}`),
       (s) => s.status === "ready",
@@ -364,7 +361,6 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     agent: z.string().max(40).optional().describe("Agent for prompt (codex, claude, ...). Default codex."),
     model: z.string().max(120).optional(),
     timeoutSeconds: z.number().int().min(10).max(21_600).optional().describe("Stop a run after this long (default 600)."),
-    keepMemory: z.boolean().optional().describe("Sleep with memory between runs: processes and open apps survive (slower pause). Default false: files only."),
     name: z.string().max(100).optional(),
   };
   const scheduleRoute = (sid: string) => `/api/sandbox-schedules/${encodeURIComponent(sid)}`;

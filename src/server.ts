@@ -42,8 +42,8 @@ Use sandbox_create with an explicit project and finite lifetime (default 5 minut
 a day; sandbox_set_timeout changes it), then sandbox_exec, sandbox_read_file,
 sandbox_write_file and sandbox_list_files with its returned ID. Clean up with
 sandbox_delete when the task ends. These tools do not deploy an app.
-sandbox_pause keeps files and stops billing for compute (processes end; full:true also keeps
-memory and processes); sandbox_resume brings it back. sandbox_snapshot saves a running sandbox's files (full:true: also memory and processes) to
+sandbox_pause keeps files and stops billing for compute (processes end; the resume boots fresh);
+sandbox_resume brings it back. sandbox_snapshot saves a running sandbox's files to
 start new ones from (sandbox_create with snapshotId); sandbox_fork starts live copies.
 sandbox_expose_port gives a port an HTTPS URL that carries its access token. A persistent volume (volume_create,
 then sandbox_create with volume) keeps files after the sandbox is gone.

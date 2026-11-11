@@ -972,7 +972,7 @@
     },
     "sandbox snapshot-scope": {
       "mcp": [],
-      "why": "Not covered yet: changes where a snapshot may be restored; sandbox_snapshot sets the scope when it is taken."
+      "why": "Not needed: every snapshot restores only in its own project. The Lizard CLI keeps this command, hidden, for old scripts."
     },
     "sandbox snapshots": {
       "mcp": [

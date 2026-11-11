@@ -300,8 +300,9 @@ the user's approval: sandboxes are billed.
   `sandbox_resume` continues where it stopped. Prefer pausing over deleting when the
   user may come back.
 - `sandbox_snapshot` saves a running sandbox; `sandbox_create` with `snapshotId` starts a
-  new one from it (same size). `sandbox_snapshot_list` / `sandbox_snapshot_delete`
-  manage them; snapshots are billed for storage.
+  new one from it (same size), only in the snapshot's own project.
+  `sandbox_snapshot_list` / `sandbox_snapshot_delete` manage them; snapshots are billed
+  for storage.
 - `sandbox_fork` starts live copies (memory and processes included). Near a limit only
   some copies may start; report the ones that failed.
 - `sandbox_expose_port` gives a port an HTTPS URL (the server must listen on 0.0.0.0).

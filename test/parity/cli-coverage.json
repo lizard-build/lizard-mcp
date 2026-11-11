@@ -1,5 +1,5 @@
 {
-  "cliVersion": "4.0.108",
+  "cliVersion": "4.0.123",
   "note": "Every Lizard CLI command, and the Lizard MCP tools that do the same job. An empty mcp list says why. scripts/audit-cli.ts checks this against `lizard --help --json`; test/unit/parity.test.ts checks the tool names.",
   "mcpOnly": {
     "template_list": "Templates are in the dashboard and the API, not the Lizard CLI.",
@@ -969,10 +969,6 @@
       "mcp": [
         "sandbox_fork"
       ]
-    },
-    "sandbox snapshot-scope": {
-      "mcp": [],
-      "why": "Not needed: every snapshot restores only in its own project. The Lizard CLI keeps this command, hidden, for old scripts."
     },
     "sandbox snapshots": {
       "mcp": [

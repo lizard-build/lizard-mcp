@@ -28,6 +28,56 @@ export interface ToolContext {
   accessToken: string;
 }
 
+export type ToolProfile = "full" | "sandboxes";
+
+// Keep this list explicit: new tools need review before joining this profile.
+const SANDBOX_TOOLS = new Set([
+  "whoami", "workspace_list", "project_list", "region_list",
+  "workspace_limits_get", "billing_status", "billing_summary",
+  "sandbox_list", "sandbox_show", "sandbox_create", "sandbox_exec",
+  "sandbox_read_file", "sandbox_write_file", "sandbox_list_files", "sandbox_delete",
+  "sandbox_set_timeout", "sandbox_pause", "sandbox_resume", "sandbox_snapshot",
+  "sandbox_snapshot_list", "sandbox_snapshot_delete", "sandbox_fork",
+  "sandbox_expose_port", "sandbox_unexpose_port",
+]);
+
+export const SANDBOX_INSTRUCTIONS = `
+Lizard (lizard.build) runs code in Lizard Sandboxes, within the signed-in user's
+workspaces and projects. This connector provides sandbox tools and read access
+to account, project, region, limits and billing information.
+
+Start with project_list to find the user's project; use its exact name, slug or ID.
+Check workspace_limits_get, billing_status and billing_summary when needed.
+On SANDBOX_RATE_LIMITED, wait retryAfterS before retrying. On SANDBOX_LIMIT_REACHED,
+ask the user which idle sandbox may be paused or deleted, or suggest a smaller size.
+On WORKSPACE_SANDBOX_LIMIT or WORKSPACE_USAGE_LIMIT, read workspace_limits_get and
+ask the workspace owner how to proceed; repeating the same call will not help.
+Use sandbox_create with that project and a finite lifetime (five minutes by default),
+then sandbox_write_file, sandbox_exec, sandbox_read_file and sandbox_list_files.
+Use the returned sandboxId; files use /workspace by default.
+Creation defaults to us-east-1; take other region codes from region_list.
+
+Creating or resuming sandboxes, forking them and storing snapshots can incur charges.
+Get the user's approval before writes. Create, execute, write, fork and delete calls
+require confirm:true after approval. sandbox_exec approval includes deletion of the
+whole sandbox if cancellation, timeout or a failed request requires cleanup. Never
+run it in a sandbox whose files the user needs to keep. Failed requests may have
+side effects; inspect the sandbox before retrying.
+
+sandbox_set_timeout changes expiry. sandbox_pause stops compute; sandbox_resume
+starts it again. sandbox_snapshot saves files to create another sandbox in the same
+project and region; sandbox_fork starts copies. Delete resources the user approved
+for cleanup when done, including snapshots that still incur storage charges.
+sandbox_expose_port returns an HTTPS URL with an access token. Treat that URL as a
+credential. Other responses mask access credentials unless reveal:true is requested.
+
+Account and project changes, CI, domains, schedules, support and volume management
+are outside this connector. Create a workspace and project in the Lizard dashboard
+if the account has none. Use the Billing link from billing_status for plan changes.
+An existing volume can be attached during sandbox_create when the user supplies
+its name or ID; the platform uses its region. This connector cannot list or create volumes.
+`.trim();
+
 export const INSTRUCTIONS = `
 Lizard is a cloud for apps, databases and sandboxes: deploy GitHub or Lizard Git repos as
 containerized apps, provision managed Postgres/Redis/S3 addons, and manage them (logs,
@@ -205,9 +255,28 @@ secrets_refs) rather than raw credentials.
  * user's access token. The endpoint is stateless and serves every user (see
  * lib/api.ts), so nothing here is cached or reused across requests.
  */
-export function getServer(accessToken: string): McpServer {
-  const server = new McpServer({ name: "lizard", version: "0.1.0" }, { instructions: INSTRUCTIONS });
+export function getServer(accessToken: string, options: { profile?: ToolProfile } = {}): McpServer {
+  const profile = options.profile ?? "full";
+  if (profile !== "full" && profile !== "sandboxes") throw new Error(`Unknown tool profile: ${profile}`);
+  const server = new McpServer(
+    { name: profile === "sandboxes" ? "lizard-sandboxes" : "lizard", version: "0.1.0" },
+    { instructions: profile === "sandboxes" ? SANDBOX_INSTRUCTIONS : INSTRUCTIONS },
+  );
   const ctx: ToolContext = { api: createApiClient(accessToken), accessToken };
+
+  if (profile === "sandboxes") {
+    const register = server.registerTool.bind(server);
+    server.registerTool = (...args) => {
+      const tool = register(...args);
+      // Remove before connecting, so tools/call cannot reach excluded tools either.
+      if (!SANDBOX_TOOLS.has(args[0])) tool.remove();
+      return tool;
+    };
+    registerAccountTools(server, ctx);
+    registerMetricsTools(server, ctx);
+    registerSandboxTools(server, ctx);
+    return server;
+  }
 
   // Support replies the caller hasn't read ride along on the next tool results (lib/support-inbox.ts).
   const register = server.registerTool.bind(server) as (...a: any[]) => any;

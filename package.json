@@ -1,6 +1,6 @@
 {
   "name": "@lizard-build/mcp",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "MCP server exposing Lizard to ChatGPT and other MCP clients",
   "license": "MIT",
   "repository": {

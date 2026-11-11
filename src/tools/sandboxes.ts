@@ -126,14 +126,16 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       "Create a sandbox (a Firecracker microVM) in an explicit project. Uses billed cloud resources and returns its ID. " +
       "Access credentials are masked; use sandbox_show with reveal:true only when the user asks for them. " +
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
-      "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). Sizes: small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
+      "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). " +
+      "Sizes: mini (1 vCPU / 2 GB; only the base, claude, codex and interpreter templates, no volume), small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
+      "The trial runs 1 Small and 2 Mini at a time, US regions only, and deletes each sandbox after 1 hour at most (lifetimeMs above 3,600,000 fails with TRIAL_SANDBOX_LIFETIME); Medium, Large and longer lifetimes unlock after the first payment. " +
       "Pass snapshotId to start from a snapshot taken in this project (it keeps the snapshot's size, so leave size out; a snapshot of another project is refused) and volume to mount a persistent volume. " +
       "No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
     inputSchema: {
       project: z.string().min(1),
-      lifetimeMs: lifetime.default(300000).describe("Lifetime in ms, 60,000 to 86,400,000 (a day); extend later with sandbox_set_timeout"),
+      lifetimeMs: lifetime.default(300000).describe("Lifetime in ms, 60,000 to 86,400,000 (a day; at most 3,600,000 on the trial); extend later with sandbox_set_timeout"),
       template: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional().describe("Template name; default interpreter"),
-      size: z.enum(["small", "medium", "large"]).optional().describe("Default small; not with snapshotId"),
+      size: z.enum(["mini", "small", "medium", "large"]).optional().describe("Default small; mini only for base, claude, codex or interpreter without a volume; not with snapshotId"),
       region: z.string().min(1).optional().describe(`Region code (region_list); default ${DEFAULT_SANDBOX_REGION}, or the volume's or snapshot's region`),
       volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project (volume_list)"),
       snapshotId: snapshotId.optional(),
@@ -239,7 +241,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_set_timeout", {
     title: "Set sandbox lifetime",
-    description: "Change how long a sandbox lives from now: it stops and loses its files (except an attached volume) when the time runs out. Use it to keep a sandbox the user still needs, or to end one sooner. 60,000 ms to 86,400,000 ms (a day).",
+    description: "Change how long a sandbox lives from now: it stops and loses its files (except an attached volume) when the time runs out. Use it to keep a sandbox the user still needs, or to end one sooner. 60,000 ms to 86,400,000 ms (a day). On the trial a sandbox cannot live past 1 hour from its creation (TRIAL_SANDBOX_LIFETIME, with latestExpiresAt).",
     inputSchema: { sandboxId: id, lifetimeMs: lifetime },
     annotations: { title: "Set sandbox lifetime", ...change, idempotentHint: true },
   }, handle(async ({ sandboxId, lifetimeMs }) => redactServiceDetails(await ctx.api.post(`${route(sandboxId)}/timeout`, { timeoutMs: lifetimeMs }))));
@@ -248,15 +250,13 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     server.registerTool(`sandbox_${op}`, {
       title: op === "pause" ? "Pause sandbox" : "Resume sandbox",
       description: op === "pause"
-        ? "Stop a running sandbox, keeping its files. By default the pause keeps files only (about a second): running processes end and sandbox_resume boots it fresh. With full:true it also keeps memory and running processes (slower the more RAM is in use), so the resume continues where it stopped; use that only when something running must survive. A paused sandbox costs only its storage and does not count against the running-sandbox limit. Waits up to 2 minutes for it to finish pausing. Undo with sandbox_resume."
-        : "Start a paused sandbox again with its files; after a full pause also its memory and running processes. Waits up to 2 minutes for it to run. If resuming fails, the saved state is kept; try again.",
-      inputSchema: op === "pause"
-        ? { sandboxId: id, full: z.boolean().optional().describe("Also keep memory and running processes (slower). Default: files only.") }
-        : { sandboxId: id },
+        ? "Stop a running sandbox, keeping its files only (about a second): running processes end and sandbox_resume boots it fresh, so start them again after it. A paused sandbox costs only its storage and does not count against the running-sandbox limit. Waits up to 2 minutes for it to finish pausing. Undo with sandbox_resume."
+        : "Start a paused sandbox again with its files (it boots fresh; start your processes again). Waits up to 2 minutes for it to run. If resuming fails, the saved state is kept; try again.",
+      inputSchema: { sandboxId: id },
       annotations: { title: op === "pause" ? "Pause sandbox" : "Resume sandbox", ...change, idempotentHint: true },
-    }, handle(async ({ sandboxId, full }: { sandboxId: string; full?: boolean }) => {
-      // full is sent as memory:true, which every server accepts; no choice = the platform default (files only).
-      const queued = await ctx.api.post<{ status?: string }>(`${route(sandboxId)}/${op}`, op === "pause" && full ? { memory: true } : {});
+    }, handle(async ({ sandboxId }: { sandboxId: string }) => {
+      // Every pause keeps files only (memory pauses are off on the platform).
+      const queued = await ctx.api.post<{ status?: string }>(`${route(sandboxId)}/${op}`, {});
       const target = op === "pause" ? "paused" : "running";
       const final = await waitFor(
         () => ctx.api.get<{ id: string; status: string }>(route(sandboxId)),
@@ -272,7 +272,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     title: "Snapshot sandbox",
     description:
       "Save a running sandbox's files as a private snapshot to start new sandboxes from (sandbox_create with snapshotId); new sandboxes boot fresh with those files. " +
-      "full:true also saves memory and running processes so new sandboxes continue where it was (slower the more RAM is in use); use it only when something running must carry over. " +
+      "Memory and running processes are not saved. " +
       "The sandbox keeps running. A snapshot restores only in its own project and region. Snapshots are billed for storage until deleted. " +
       "Waits up to 2 minutes for the snapshot to be ready; a large one may still be processing, so check sandbox_snapshot_list.",
     // No scope input: the platform keeps every snapshot to its own project. The SDK drops
@@ -280,12 +280,11 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     inputSchema: {
       sandboxId: id,
       name: z.string().min(1).max(100).describe("A name for the snapshot"),
-      full: z.boolean().optional().describe("Also save memory and running processes (slower). Default: files only."),
     },
     annotations: { title: "Snapshot sandbox", ...change },
-  }, handle(async ({ sandboxId, name, full }: { sandboxId: string; name: string; full?: boolean }) => {
-    // full is sent as memory:true, which every server accepts; no choice = the platform default (files only).
-    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name, ...(full ? { memory: true } : {}) });
+  }, handle(async ({ sandboxId, name }: { sandboxId: string; name: string }) => {
+    // Files only: snapshots never keep memory.
+    const started = await ctx.api.post<SnapshotRecord>(`${route(sandboxId)}/snapshot`, { name });
     return waitFor(
       () => ctx.api.get<SnapshotRecord>(`/api/sandbox-snapshots/${encodeURIComponent(started.id)}`),
       (s) => s.status === "ready",
@@ -352,5 +351,65 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
     await ctx.api.delete(`${route(sandboxId)}/expose/${port}`);
     return { sandboxId, port, status: "unexposed" };
   }));
-}
 
+  // ── schedules: wake a sandbox on a timer, run a prompt or command, sleep again ──
+  const scheduleId = z.string().min(1).max(64).regex(/^sch_[a-f0-9]{16}$/).describe("Schedule ID (sch_...) from sandbox_schedule or sandbox_schedule_list");
+  const scheduleFields = {
+    every: z.string().max(20).optional().describe('How often, e.g. "5m", "1h", "1d" (1 minute at least). Give every or cron.'),
+    cron: z.string().max(200).optional().describe('Cron instead: "m h dom mon dow", e.g. "*/5 * * * *", "0 9 * * mon-fri", "@daily".'),
+    timezone: z.string().max(64).optional().describe("IANA time zone for cron, e.g. Europe/Berlin (default UTC)."),
+    prompt: z.string().min(1).max(100_000).optional().describe("Run the sandbox's coding agent with this prompt; each run is a new conversation, so keep state in files."),
+    command: z.string().min(1).max(20_000).optional().describe("Or run this shell command, in /workspace as root; success = exit code 0."),
+    agent: z.string().max(40).optional().describe("Agent for prompt (codex, claude, ...). Default codex."),
+    model: z.string().max(120).optional(),
+    timeoutSeconds: z.number().int().min(10).max(21_600).optional().describe("Stop a run after this long (default 600)."),
+    name: z.string().max(100).optional(),
+  };
+  const scheduleRoute = (sid: string) => `/api/sandbox-schedules/${encodeURIComponent(sid)}`;
+
+  server.registerTool("sandbox_schedule", {
+    title: "Schedule sandbox runs",
+    description: "Run a prompt (the coding agent) or a shell command in a sandbox on a schedule: each run wakes the sandbox if it is paused, runs, and puts it back to sleep, so the user pays only while it is awake. A sandbox already running is left running. Files in /workspace carry over between runs. A run still going when the next is due makes that one skip; five failures in a row switch the schedule off. The sandbox must not expire: a sandbox with a lifetime is deleted when it runs out, schedules with it. Get the user's approval first: every run uses billed compute (and model usage for prompts).",
+    inputSchema: { sandboxId: id, ...scheduleFields, confirm: z.literal(true) },
+    annotations: { title: "Schedule sandbox runs", ...write },
+  }, handle(async ({ sandboxId, confirm: _c, ...body }) => {
+    if (!body.every && !body.cron) throw new Error("Give every (e.g. \"5m\") or cron.");
+    if (!body.prompt === !body.command) throw new Error("Give prompt or command, one of them.");
+    return ctx.api.post(`${route(sandboxId)}/schedules`, body);
+  }));
+
+  server.registerTool("sandbox_schedule_list", {
+    title: "List sandbox schedules",
+    description: "List schedules: one sandbox's, or all the user can see. Shows when each runs next, what it runs, and how its last run went.",
+    inputSchema: { sandboxId: id.optional() },
+    annotations: { title: "List sandbox schedules", ...readOnly },
+  }, handle(async ({ sandboxId }) => ctx.api.get(sandboxId ? `${route(sandboxId)}/schedules` : "/api/sandbox-schedules")));
+
+  server.registerTool("sandbox_schedule_update", {
+    title: "Change sandbox schedule",
+    description: "Change a schedule: its timing, what it runs, its timeout, or switch it off (enabled:false) and on again.",
+    inputSchema: { scheduleId, ...scheduleFields, enabled: z.boolean().optional() },
+    annotations: { title: "Change sandbox schedule", ...change, idempotentHint: true },
+  }, handle(async ({ scheduleId: sid, ...body }) => ctx.api.patch(scheduleRoute(sid), body)));
+
+  server.registerTool("sandbox_schedule_run", {
+    title: "Run sandbox schedule now",
+    description: "Start a run of the schedule now (within a few seconds; also switches it back on). Check the result with sandbox_schedule_runs.",
+    inputSchema: { scheduleId },
+    annotations: { title: "Run sandbox schedule now", ...write, openWorldHint: false },
+  }, handle(async ({ scheduleId: sid }) => ctx.api.post(`${scheduleRoute(sid)}/run`, {})));
+
+  server.registerTool("sandbox_schedule_runs", {
+    title: "Sandbox schedule runs",
+    description: "A schedule's recent runs, newest first: status (succeeded, failed, timeout, interrupted, running), duration, exit code, the end of the output and any error.",
+    inputSchema: { scheduleId, limit: z.number().int().min(1).max(200).optional() },
+    annotations: { title: "Sandbox schedule runs", ...readOnly },
+  }, handle(async ({ scheduleId: sid, limit }) => ctx.api.get(withQuery(`${scheduleRoute(sid)}/runs`, { limit }))));
+
+  server.registerTool("sandbox_schedule_delete", {
+    title: "Delete sandbox schedule",
+    description: "Delete a schedule. The sandbox itself stays as it is.",
+    inputSchema: { scheduleId },
+    annotations: { title: "Delete sandbox schedule", ...change, idempotentHint: true },
+  }, handle(async ({ scheduleId: sid }) => ctx.api.delete(scheduleRoute(sid))));
+}

@@ -908,6 +908,78 @@
         "destructive_justification": "Removes a sandbox port's public URL. Requires confirmation because it changes resources or account data."
       }
     },
+    "sandbox_schedule": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Creates a schedule that runs a prompt or command in a sandbox.",
+        "open_world_justification": "Each run executes the user's prompt or command in their sandbox, which can reach the internet.",
+        "destructive_justification": "Creates a recurring job that uses billed compute. Requires confirmation because it changes resources or account data."
+      }
+    },
+    "sandbox_schedule_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists schedules.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Reads data only."
+      }
+    },
+    "sandbox_schedule_update": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Changes a sandbox schedule.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Changes a sandbox schedule. Requires confirmation because it changes resources or account data."
+      }
+    },
+    "sandbox_schedule_run": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Starts a run of a sandbox schedule.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Starts a run that uses billed compute. Requires confirmation because it changes resources or account data."
+      }
+    },
+    "sandbox_schedule_runs": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads a schedule's run history.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Reads data only."
+      }
+    },
+    "sandbox_schedule_delete": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Deletes a sandbox schedule.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Deletes a sandbox schedule. Requires confirmation because it changes resources or account data."
+      }
+    },
     "repo_list": {
       "annotations": {
         "readOnlyHint": true,

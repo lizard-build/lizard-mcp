@@ -203,11 +203,11 @@ describe('real MCP transports against a local REST fixture', () => {
     ]);
   });
 
-  it('lists the same 97 tools over stdio and HTTP', async () => {
+  it('lists the same 103 tools over stdio and HTTP', async () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
     expect(stdio.tools.map((tool) => tool.name).sort()).toEqual(http.tools.map((tool) => tool.name).sort());
-    expect(stdio.tools).toHaveLength(97);
+    expect(stdio.tools).toHaveLength(103);
     expect(stdio.tools.some((tool) => tool.name === 'ssh_exec')).toBe(false);
     for (const tool of stdio.tools) {
       expect(tool.title, tool.name).toBeTruthy();
@@ -435,6 +435,20 @@ describe('real MCP transports against a local REST fixture', () => {
     expect((await invoke('sandbox_create', { project: 'demo', lifetimeMs: 86400001, confirm: true })).isError).toBe(true);
     expect(writes()).toEqual([]);
   });
+  it('creates a Mini sandbox and passes on the server refusing it for a template', async () => {
+    reply = () => ({ body: { sandboxId: 's1', size: 'mini' } });
+    const created = await invoke('sandbox_create', { project: 'demo', template: 'claude', size: 'mini', confirm: true });
+    expect(created.structuredContent).toMatchObject({ sandboxId: 's1', size: 'mini' });
+    expect(writes().map((w) => w.body)).toEqual([
+      { template: 'claude', projectId: 'p1', size: 'mini', timeoutMs: 300000, region: 'us-east-1', metadata: { integration: 'lizard-mcp' } },
+    ]);
+    reply = () => ({ status: 400, body: { error: "Size 'mini' is not available for template 'desktop' in region 'us-east-1'", code: 'SANDBOX_SIZE_NOT_ALLOWED' } });
+    const refused = await invoke('sandbox_create', { project: 'demo', template: 'desktop', size: 'mini', confirm: true });
+    expect(refused.isError).toBe(true);
+    expect(texts(refused)).toContain("Size 'mini' is not available for template 'desktop'");
+    expect(refused.structuredContent).toMatchObject({ error: { status: 400, code: 'SANDBOX_SIZE_NOT_ALLOWED' } });
+    expect((await invoke('sandbox_create', { project: 'demo', size: 'tiny', confirm: true })).isError).toBe(true);
+  });
   it('pauses and resumes a sandbox and waits for the state', async () => {
     let state = 'running';
     reply = (call) => {
@@ -480,7 +494,7 @@ describe('real MCP transports against a local REST fixture', () => {
     reply = (call) => call.method === 'POST' ? { body: { id: 'snap1', status: 'processing' } } : { body: { id: 'snap1', status: 'ready' } };
     const tools = (await client.listTools()).tools;
     const snapshot = tools.find((t) => t.name === 'sandbox_snapshot');
-    expect(Object.keys(snapshot?.inputSchema.properties ?? {})).toEqual(['sandboxId', 'name', 'full']);
+    expect(Object.keys(snapshot?.inputSchema.properties ?? {})).toEqual(['sandboxId', 'name']);
     expect(snapshot?.inputSchema.additionalProperties).not.toBe(false);
     expect(snapshot?.description).toContain('restores only in its own project');
     expect(snapshot?.description).not.toMatch(/scope|any of your projects/);
@@ -611,7 +625,7 @@ describe('real MCP transports against a local REST fixture', () => {
     const anonymous = makeClient();
     try {
       await anonymous.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: { ...env(), LIZARD_TOKEN: '', LIZARD_API_KEY: '' }, stderr: 'pipe' }));
-      expect((await anonymous.listTools()).tools).toHaveLength(97);
+      expect((await anonymous.listTools()).tools).toHaveLength(103);
       expect(texts(await anonymous.callTool({ name: 'whoami', arguments: {} }))).toContain('No Lizard API key');
     } finally { await anonymous.close(); }
   });

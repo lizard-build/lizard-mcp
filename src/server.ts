@@ -42,8 +42,8 @@ Use sandbox_create with an explicit project and finite lifetime (default 5 minut
 a day; sandbox_set_timeout changes it), then sandbox_exec, sandbox_read_file,
 sandbox_write_file and sandbox_list_files with its returned ID. Clean up with
 sandbox_delete when the task ends. These tools do not deploy an app.
-sandbox_pause keeps files and stops billing for compute (processes end; full:true also keeps
-memory and processes); sandbox_resume brings it back. sandbox_snapshot saves a running sandbox's files (full:true: also memory and processes) to
+sandbox_pause keeps files and stops billing for compute (processes end; the resume boots fresh);
+sandbox_resume brings it back. sandbox_snapshot saves a running sandbox's files to
 start new ones from in the same project (sandbox_create with snapshotId); sandbox_fork starts live copies.
 sandbox_expose_port gives a port an HTTPS URL that carries its access token. A persistent volume (volume_create,
 then sandbox_create with volume) keeps files after the sandbox is gone.
@@ -145,9 +145,15 @@ service_create with repoUrl lizard:owner/name. Lizard Git refuses API keys with 
 
 ## Sandbox limits
 
-An account's limit counts vCPU of running sandboxes (Small 2, Medium 4, Large 8; paused
-ones don't count), across all of the owner's workspaces: up to 4 Small on the trial,
-40 vCPU on Pro, 220 on Pro 5x, 1,200 on Pro 20x. Past it, sandbox_create, sandbox_fork
+The trial runs 1 Small and 2 Mini at a time (US regions only); Medium and Large unlock
+after the first payment. On the trial, Medium or Large fails with TRIAL_SANDBOX_SIZE,
+another region with TRIAL_SANDBOX_REGION, and a second Small or a third Mini with
+TRIAL_SIZE_RUNNING (pause or delete one, or use the other size). A trial sandbox lives
+1 hour at most, then it is deleted: a longer lifetime fails with TRIAL_SANDBOX_LIFETIME, and
+sandbox_set_timeout cannot extend it past 1 hour from its creation (latestExpiresAt).
+Paid accounts' limit counts vCPU of running sandboxes (Mini 1, Small 2, Medium 4, Large 8;
+paused ones don't count), across all of the owner's workspaces: 40 vCPU on Pro, 220 on
+Pro 5x, 1,200 on Pro 20x. Past it, sandbox_create, sandbox_fork
 and sandbox_resume fail with SANDBOX_LIMIT_REACHED; the error's structuredContent has
 unit ("vcpu"), limit, running (vCPU in use) and needed. Pause or delete an idle sandbox,
 pick a smaller size, or tell the user a higher Pro tier raises it (billing_status lists

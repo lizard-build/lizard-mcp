@@ -126,6 +126,24 @@ key.
 | `PLATFORM_URL` | `https://lizard.build` | The Lizard API this server talks to |
 | `LIZARD_TOKEN` | — | API key for stdio mode, where there is no OAuth handshake. `LIZARD_API_KEY` works too. |
 
+## Sandboxes profile
+
+The standalone HTTP server also serves `/mcp/sandboxes`. This profile includes
+sandbox creation, files, code execution, pause and resume, snapshots, forks and
+port access, plus account, project, region, limits and billing reads. It excludes
+CI, DNS, support, schedules and other platform tools. New tools stay out of this
+profile until its allowlist includes them. Excluded tools cannot be called by name.
+
+Use the same server origin with `/mcp/sandboxes` as the client URL. It has its own
+OAuth resource metadata. `/mcp` and stdio still provide the full tool set. In-process
+hosts can select the same profile with `getServer(token, { profile: "sandboxes" })`;
+they must add the HTTP route and OAuth resource metadata themselves. Deploying this
+package alone does not add a route to an in-process host.
+
+This profile needs a Lizard workspace and project with permission to use Sandboxes.
+It does not need CI access or an owned domain. Cloud usage still incurs charges.
+It can attach an existing volume by ID, but cannot list or create volumes.
+
 ## Tools
 
 | Area | Tools |
@@ -261,4 +279,3 @@ isn't scriptable:
 ## License
 
 MIT
-

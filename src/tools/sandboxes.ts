@@ -137,7 +137,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       template: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional().describe("Template name; default interpreter"),
       size: z.enum(["mini", "small", "medium", "large"]).optional().describe("Default small; mini only for base, claude, codex or interpreter without a volume; not with snapshotId"),
       region: z.string().min(1).optional().describe(`Region code (region_list); default ${DEFAULT_SANDBOX_REGION}, or the volume's or snapshot's region`),
-      volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project (volume_list)"),
+      volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project"),
       snapshotId: snapshotId.optional(),
       confirm: z.literal(true),
     }, annotations: { title: "Create sandbox", ...write, openWorldHint: false },

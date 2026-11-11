@@ -14,6 +14,7 @@ let mcpUrl: string;
 let httpProcess: ChildProcess;
 let client: Client;
 let httpClient: Client;
+let sandboxesClient: Client;
 let calls: Call[] = [];
 let reply: (call: Call) => Reply;
 let authStatus = 200;
@@ -69,17 +70,97 @@ beforeAll(async () => {
   await client.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: env(), stderr: 'pipe' }));
   httpClient = makeClient();
   await httpClient.connect(new StreamableHTTPClientTransport(new URL(mcpUrl), { requestInit: { headers: { Authorization: 'Bearer liz_http_fixture' } } }));
+  sandboxesClient = makeClient();
+  await sandboxesClient.connect(new StreamableHTTPClientTransport(new URL(`${mcpUrl}/sandboxes`), { requestInit: { headers: { Authorization: 'Bearer liz_sandboxes_fixture' } } }));
 }, 20000);
 
 afterAll(async () => {
   await client?.close();
   await httpClient?.close();
+  await sandboxesClient?.close();
   if (httpProcess && httpProcess.exitCode === null) { httpProcess.kill(); await once(httpProcess, 'exit'); }
   await new Promise<void>((resolve) => platform?.close(() => resolve()));
 });
 beforeEach(() => {
   calls = []; authStatus = 200; reply = () => ({ body: { ok: true } });
   services = { apps: [{ id: 'a1', name: 'web' }], addons: [] };
+});
+
+describe('sandboxes profile over HTTP', () => {
+  it('exposes the reviewed sandbox and account tools with matching instructions', async () => {
+    const { tools } = await sandboxesClient.listTools();
+    expect(tools.map(tool => tool.name).sort()).toEqual([
+      'whoami', 'workspace_list', 'project_list', 'region_list',
+      'workspace_limits_get', 'billing_status', 'billing_summary',
+      'sandbox_list', 'sandbox_show', 'sandbox_create', 'sandbox_exec',
+      'sandbox_read_file', 'sandbox_write_file', 'sandbox_list_files', 'sandbox_delete',
+      'sandbox_set_timeout', 'sandbox_pause', 'sandbox_resume', 'sandbox_snapshot',
+      'sandbox_snapshot_list', 'sandbox_snapshot_delete', 'sandbox_fork',
+      'sandbox_expose_port', 'sandbox_unexpose_port',
+    ].sort());
+    const instructions = sandboxesClient.getInstructions()!;
+    expect(instructions).toContain('Lizard Sandboxes');
+    for (const name of instructions.match(/\b[a-z]+(?:_[a-z]+)+\b/g) ?? []) {
+      expect(tools.some(tool => tool.name === name), name).toBe(true);
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it('rejects every excluded full-profile tool before it reaches the API', async () => {
+    const full = await httpClient.listTools();
+    const listed = (await sandboxesClient.listTools()).tools;
+    const subset = new Set(listed.map(tool => tool.name));
+    for (const tool of full.tools.filter(tool => !subset.has(tool.name))) {
+      expect(JSON.stringify(listed), tool.name).not.toMatch(new RegExp(`\\b${tool.name}\\b`));
+      const result = await sandboxesClient.callTool({ name: tool.name, arguments: {} });
+      expect(result.isError, tool.name).toBe(true);
+      expect(texts(result), tool.name).toMatch(/not found/i);
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it('serves distinct OAuth metadata and challenges for both endpoints', async () => {
+    for (const [endpoint, name] of [[mcpUrl, 'Lizard'], [`${mcpUrl}/sandboxes`, 'Lizard Sandboxes']]) {
+      const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      expect(response.status).toBe(401);
+      const metadataUrl = response.headers.get('www-authenticate')?.match(/resource_metadata="([^"]+)"/)?.[1];
+      expect(metadataUrl).toBe(`${new URL(endpoint).origin}/.well-known/oauth-protected-resource${new URL(endpoint).pathname}`);
+      const metadata = await fetch(metadataUrl!);
+      expect(await metadata.json()).toMatchObject({ resource: endpoint, resource_name: name, authorization_servers: [platformUrl] });
+    }
+  });
+
+  it('requires valid authentication and keeps the sandbox endpoint stateless', async () => {
+    authStatus = 401;
+    const response = await fetch(`${mcpUrl}/sandboxes`, { method: 'POST', headers: { Authorization: 'Bearer expired', 'Content-Type': 'application/json' }, body: '{}' });
+    expect(response.status).toBe(401);
+    for (const method of ['GET', 'DELETE']) {
+      expect((await fetch(`${mcpUrl}/sandboxes`, { method })).status).toBe(405);
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it('creates, writes, executes and deletes with confirmation and no support API calls', async () => {
+    reply = call => ({ body: call.url.endsWith('/exec') ? { stdout: '10\n', stderr: '', exitCode: 0 } : { sandboxId: 's1' } });
+    const actions: Array<[string, Record<string, unknown>]> = [
+      ['sandbox_create', { project: 'demo' }],
+      ['sandbox_write_file', { sandboxId: 's1', path: 'sum.py', content: 'print(sum([1, 2, 3, 4]))' }],
+      ['sandbox_exec', { sandboxId: 's1', command: 'python /workspace/sum.py' }],
+      ['sandbox_delete', { sandboxId: 's1' }],
+    ];
+    for (const [name, args] of actions) expect((await sandboxesClient.callTool({ name, arguments: args })).isError, name).toBe(true);
+    expect(calls).toEqual([]);
+    for (const [name, args] of actions) {
+      const result = await sandboxesClient.callTool({ name, arguments: { ...args, confirm: true } });
+      expect(result.isError, name).not.toBe(true);
+      if (name === 'sandbox_exec') expect(result.structuredContent).toMatchObject({ stdout: '10\n', exitCode: 0 });
+    }
+    expect(writes().map(call => `${call.method} ${call.url}`)).toEqual([
+      'POST /api/sandboxes', 'POST /api/sandboxes/s1/files', 'POST /api/sandboxes/s1/exec', 'DELETE /api/sandboxes/s1',
+    ]);
+    expect(calls.every(call => call.auth === 'Bearer liz_sandboxes_fixture')).toBe(true);
+    expect(calls.every(call => call.url === '/api/projects' || call.url.startsWith('/api/sandboxes'))).toBe(true);
+  });
 });
 
 describe('real MCP transports against a local REST fixture', () => {
@@ -119,7 +200,7 @@ describe('real MCP transports against a local REST fixture', () => {
   it('masks sandbox access credentials in both transports and reveals only on request', async () => {
     const sandbox = { sandboxId: 's1', status: 'running', accessToken: 'fixture-access-token', sshPassword: 'fixture-ssh-password' };
     reply = call => ({ body: call.url.endsWith('/sandboxes') ? [sandbox] : sandbox });
-    for (const peer of [client, httpClient]) {
+    for (const peer of [client, httpClient, sandboxesClient]) {
       for (const [name, args] of [
         ['sandbox_list', { project: 'demo' }],
         ['sandbox_show', { sandboxId: 's1' }],
@@ -262,9 +343,11 @@ describe('real MCP transports against a local REST fixture', () => {
     await Promise.all([
       invoke('sandbox_show', { sandboxId: 'stdio-sandbox' }),
       httpClient.callTool({ name: 'sandbox_show', arguments: { sandboxId: 'http-sandbox' } }),
+      sandboxesClient.callTool({ name: 'sandbox_show', arguments: { sandboxId: 'profile-sandbox' } }),
     ]);
     expect(calls.find(call => call.url === '/api/sandboxes/stdio-sandbox')?.auth).toBe('Bearer liz_fixture');
     expect(calls.find(call => call.url === '/api/sandboxes/http-sandbox')?.auth).toBe('Bearer liz_http_fixture');
+    expect(calls.find(call => call.url === '/api/sandboxes/profile-sandbox')?.auth).toBe('Bearer liz_sandboxes_fixture');
   });
   it('passes an OAuth caller token through as Bearer for sandbox tools', async () => {
     const oauth = makeClient();
@@ -648,4 +731,3 @@ describe('real MCP transports against a local REST fixture', () => {
     expect(response.status).toBe(500);
   });
 });
-

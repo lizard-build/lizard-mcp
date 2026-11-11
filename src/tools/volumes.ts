@@ -4,6 +4,7 @@ import type { ToolContext } from "../server.js";
 import { APIError, withScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
+import { DEFAULT_REGION } from "../lib/regions.js";
 
 /** Collection path for a project's volumes. Exported for unit tests. */
 export function buildVolumeListPath(projectId: string): string {
@@ -82,7 +83,7 @@ export function registerVolumeTools(server: McpServer, ctx: ToolContext) {
         project: z.string().min(1).describe("Project name, slug, or ID"),
         name: z.string().regex(VOLUME_NAME_RE).describe("Lowercase letters, digits and dashes, up to 64"),
         sizeGb: z.number().int().min(1).optional().describe("Size in GB"),
-        region: z.string().min(1).optional().describe("Sandbox volumes: region code (region_list)"),
+        region: z.string().min(1).optional().describe(`Sandbox volumes: region code (region_list); default ${DEFAULT_REGION}`),
         service: z.string().min(1).optional().describe("App name or ID to attach the volume to"),
         mountPath: z.string().regex(/^\//).optional().describe("With service: absolute path, default /data"),
       },
@@ -104,7 +105,7 @@ export function registerVolumeTools(server: McpServer, ctx: ToolContext) {
         size = limits.defaultSizeGb;
       }
       return ctx.api
-        .post(withScope(buildVolumeListPath(proj.id), scope), { name, sizeGb: size, ...(region ? { region } : {}) })
+        .post(withScope(buildVolumeListPath(proj.id), scope), { name, sizeGb: size, region: region ?? DEFAULT_REGION })
         .catch(withCode);
     }),
   );

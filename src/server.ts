@@ -83,8 +83,8 @@ skipInitialDeploy and never deployed.
 ## Regions — do not guess a code
 
 Region codes are opaque platform identifiers, not something to infer from a place name.
-Call region_list before service_create or addon_create if you don't already know a
-valid code from earlier in the conversation.
+service_create, addon_create, volume_create and sandbox_create use us-east-1 when region
+is left out. To put something elsewhere, take the code from region_list.
 
 ## Secrets: scope and precedence
 

@@ -217,7 +217,9 @@ verify the consumer actually received a value — `logs_tail`, or a page of the 
 
 ## Managed addons
 
-Provision with `addon_create` (`type`: `postgres | redis | s3`). Each exposes a fixed
+Provision with `addon_create` (`type`: `postgres | redis | s3`). Like `service_create`, it
+lands in `us-east-1` unless `region` names another, so pass the same `region` to both to
+keep a service next to its database. Each exposes a fixed
 env-var set; a consuming service references it via `${{<addon-name>.KEY>}}` — check
 the exact available keys with `secrets_refs` before wiring one, don't assume key
 names. The first addon of a type gets the bare type as its name

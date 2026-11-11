@@ -5,6 +5,7 @@ import { withScope, type ResourceScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
 import { handle } from "../lib/tool-helpers.js";
 import { redactServiceDetails } from "../lib/service-redaction.js";
+import { DEFAULT_REGION } from "../lib/regions.js";
 
 /** 1024 -> "1Gi", 512 -> "512Mi". Matches lizard-cli/src/commands/scale.ts's mbToK8s. */
 function mbToK8s(mb: number): string {
@@ -133,7 +134,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       inputSchema: {
         project: z.string().min(1),
         name: z.string().describe("Service name"),
-        region: z.string().describe("Deployment region code — call region_list first if unsure of valid values, do not guess"),
+        region: z.string().min(1).optional().describe(`Region code from region_list; default ${DEFAULT_REGION}. Do not guess one`),
         repoUrl: z.string().optional().describe("https URL, owner/name (GitHub) or lizard:owner/name (Lizard Git) — when provided, this becomes a deploy of that repo"),
         containerPort: z.number().int().optional(),
         envVars: z.record(z.string(), z.string()).optional(),
@@ -145,7 +146,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       const proj = await resolveProject(ctx.api, project);
       return ctx.api.post(
         withScope(`/api/projects/${proj.id}/apps`, { workspaceId: proj.workspaceId }),
-        { name, region, repoUrl: repoUrl ? normalizeRepoUrl(repoUrl) : undefined, containerPort, envVars, skipInitialDeploy },
+        { name, region: region ?? DEFAULT_REGION, repoUrl: repoUrl ? normalizeRepoUrl(repoUrl) : undefined, containerPort, envVars, skipInitialDeploy },
       ).then(redactServiceDetails);
     }),
   );
@@ -159,7 +160,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       inputSchema: {
         project: z.string().min(1),
         type: z.enum(["postgres", "redis", "s3"]),
-        region: z.string().describe("Deployment region code — call region_list first if unsure of valid values, do not guess"),
+        region: z.string().min(1).optional().describe(`Region code from region_list; default ${DEFAULT_REGION}. Do not guess one`),
         name: z.string().optional().describe("Stable reference key for ${{name.KEY}} templates"),
       },
       annotations: { title: "Create addon", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
@@ -168,7 +169,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
       const proj = await resolveProject(ctx.api, project);
       return ctx.api.post(
         withScope(`/api/projects/${proj.id}/addons`, { workspaceId: proj.workspaceId }),
-        { type, region, name },
+        { type, region: region ?? DEFAULT_REGION, name },
       ).then(redactServiceDetails);
     }),
   );

@@ -196,7 +196,8 @@ service_create with repoUrl lizard:owner/name. Lizard Git refuses API keys with 
 ## Sandbox limits
 
 The trial runs 1 Small, 2 Mini and 2 Nano at a time (US regions only); Medium, Large and
-Big unlock after the first payment. On the trial, Medium, Large or Big fails with TRIAL_SANDBOX_SIZE,
+Big unlock after the first payment. On the trial, Medium fails with TRIAL_SANDBOX_SIZE,
+Large or Big with SANDBOX_SIZE_NOT_ALLOWED,
 another region with TRIAL_SANDBOX_REGION, and a second Small or a third Mini or Nano with
 TRIAL_SIZE_RUNNING (pause or delete one, or use the other size). A trial sandbox lives
 1 hour at most, then it is deleted: a longer lifetime fails with TRIAL_SANDBOX_LIFETIME, and

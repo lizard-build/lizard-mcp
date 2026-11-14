@@ -532,6 +532,17 @@ describe('real MCP transports against a local REST fixture', () => {
     expect(refused.structuredContent).toMatchObject({ error: { status: 400, code: 'SANDBOX_SIZE_NOT_ALLOWED' } });
     expect((await invoke('sandbox_create', { project: 'demo', size: 'tiny', confirm: true })).isError).toBe(true);
   });
+  it('creates Nano and Big sandboxes', async () => {
+    for (const [template, size] of [['codex', 'nano'], ['desktop', 'big']] as const) {
+      calls = [];
+      reply = () => ({ body: { sandboxId: 's1', size } });
+      const created = await invoke('sandbox_create', { project: 'demo', template, size, confirm: true });
+      expect(created.structuredContent).toMatchObject({ sandboxId: 's1', size });
+      expect(writes().map((w) => w.body)).toEqual([
+        { template, projectId: 'p1', size, timeoutMs: 300000, region: 'us-east-1', metadata: { integration: 'lizard-mcp' } },
+      ]);
+    }
+  });
   it('pauses and resumes a sandbox and waits for the state', async () => {
     let state = 'running';
     reply = (call) => {

@@ -127,15 +127,15 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       "Access credentials are masked; use sandbox_show with reveal:true only when the user asks for them. " +
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
       "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). " +
-      "Sizes: mini (1 vCPU / 2 GB; only the base, claude, codex and interpreter templates, no volume), small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB). " +
-      "The trial runs 1 Small and 2 Mini at a time, US regions only, and deletes each sandbox after 1 hour at most (lifetimeMs above 3,600,000 fails with TRIAL_SANDBOX_LIFETIME); Medium, Large and longer lifetimes unlock after the first payment. " +
+      "Sizes: nano (0.5 vCPU / 1 GB; only the base, claude and codex templates), mini (1 vCPU / 2 GB; only base, claude, codex and interpreter), small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB), big (16 vCPU / 32 GB; paid plans only; base, claude, codex, interpreter and desktop). Nano, mini and big take no volume. " +
+      "The trial runs 1 Small, 2 Mini and 2 Nano at a time, US regions only, and deletes each sandbox after 1 hour at most (lifetimeMs above 3,600,000 fails with TRIAL_SANDBOX_LIFETIME); Medium, Large, Big and longer lifetimes unlock after the first payment. " +
       "Pass snapshotId to start from a snapshot taken in this project (it keeps the snapshot's size, so leave size out; a snapshot of another project is refused) and volume to mount a persistent volume. " +
       "No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
     inputSchema: {
       project: z.string().min(1),
       lifetimeMs: lifetime.default(300000).describe("Lifetime in ms, 60,000 to 86,400,000 (a day; at most 3,600,000 on the trial); extend later with sandbox_set_timeout"),
       template: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).optional().describe("Template name; default interpreter"),
-      size: z.enum(["mini", "small", "medium", "large"]).optional().describe("Default small; mini only for base, claude, codex or interpreter without a volume; not with snapshotId"),
+      size: z.enum(["nano", "mini", "small", "medium", "large", "big"]).optional().describe("Default small; nano only for base, claude or codex, mini also interpreter, big also interpreter or desktop (paid plans); none of the three with a volume; not with snapshotId"),
       region: z.string().min(1).optional().describe(`Region code (region_list); default ${DEFAULT_SANDBOX_REGION}, or the volume's or snapshot's region`),
       volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project"),
       snapshotId: snapshotId.optional(),

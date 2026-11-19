@@ -1,5 +1,5 @@
 {
-  "cliVersion": "4.0.123",
+  "cliVersion": "4.0.133",
   "note": "Every Lizard CLI command, and the Lizard MCP tools that do the same job. An empty mcp list says why. scripts/audit-cli.ts checks this against `lizard --help --json`; test/unit/parity.test.ts checks the tool names.",
   "mcpOnly": {
     "template_list": "Templates are in the dashboard and the API, not the Lizard CLI.",
@@ -866,6 +866,10 @@
       "mcp": [
         "sandbox_set_timeout"
       ]
+    },
+    "sandbox proxy": {
+      "mcp": [],
+      "why": "Not covered yet: sets or removes a running sandbox's proxy."
     },
     "sandbox cpu": {
       "mcp": [],

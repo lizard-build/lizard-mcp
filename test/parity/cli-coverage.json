@@ -937,6 +937,38 @@
         "sandbox_schedule_delete"
       ]
     },
+    "sandbox environments": {
+      "mcp": [],
+      "why": "Sandbox environments (variables, agent instruction files) are set up in the dashboard or the Lizard CLI; this server only uses one: sandbox_create's environment."
+    },
+    "sandbox environment-show": {
+      "mcp": [],
+      "why": "Sandbox environments (variables, agent instruction files) are set up in the dashboard or the Lizard CLI; this server only uses one: sandbox_create's environment."
+    },
+    "sandbox environment-create": {
+      "mcp": [],
+      "why": "Sandbox environments (variables, agent instruction files) are set up in the dashboard or the Lizard CLI; this server only uses one: sandbox_create's environment."
+    },
+    "sandbox environment-set": {
+      "mcp": [],
+      "why": "Sandbox environments (variables, agent instruction files) are set up in the dashboard or the Lizard CLI; this server only uses one: sandbox_create's environment."
+    },
+    "sandbox environment-unset": {
+      "mcp": [],
+      "why": "Sandbox environments (variables, agent instruction files) are set up in the dashboard or the Lizard CLI; this server only uses one: sandbox_create's environment."
+    },
+    "sandbox environment-rename": {
+      "mcp": [],
+      "why": "Sandbox environments (variables, agent instruction files) are set up in the dashboard or the Lizard CLI; this server only uses one: sandbox_create's environment."
+    },
+    "sandbox environment-rm": {
+      "mcp": [],
+      "why": "Sandbox environments (variables, agent instruction files) are set up in the dashboard or the Lizard CLI; this server only uses one: sandbox_create's environment."
+    },
+    "sandbox environment-instructions": {
+      "mcp": [],
+      "why": "Sandbox environments (variables, agent instruction files) are set up in the dashboard or the Lizard CLI; this server only uses one: sandbox_create's environment."
+    },
     "sandbox desktop": {
       "mcp": [],
       "why": "An interactive terminal, desktop or live stream; not a fit for one tool call."

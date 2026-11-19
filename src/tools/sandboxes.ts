@@ -130,6 +130,8 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       "Sizes: nano (0.5 vCPU / 1 GB; only the base, claude and codex templates), mini (1 vCPU / 2 GB; only base, claude, codex and interpreter), small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB), big (16 vCPU / 32 GB; paid plans only; base, claude, codex, interpreter and desktop). Nano, mini and big take no volume. " +
       "The trial runs 1 Small, 2 Mini and 2 Nano at a time, US regions only, and deletes each sandbox after 1 hour at most (lifetimeMs above 3,600,000 fails with TRIAL_SANDBOX_LIFETIME); Medium, Large, Big and longer lifetimes unlock after the first payment. " +
       "Pass snapshotId to start from a snapshot taken in this project (it keeps the snapshot's size, so leave size out; a snapshot of another project is refused) and volume to mount a persistent volume. " +
+      "Pass environment to start with the variables of one of the project's named sandbox environments instead of its default ones (set up in the dashboard under Sandboxes, Environment, or with the Lizard CLI; an unknown name is refused; not with snapshotId). " +
+      "A schedule can only be set in a sandbox's first 15 minutes: when the user wants a scheduled sandbox, create it and set the schedule right after. " +
       "No host files, environment variables, or API key are copied into it. Get the user's approval before creating it; do not retry an uncertain response blindly.",
     inputSchema: {
       project: z.string().min(1),
@@ -139,10 +141,12 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       region: z.string().min(1).optional().describe(`Region code (region_list); default ${DEFAULT_SANDBOX_REGION}, or the volume's or snapshot's region`),
       volume: z.string().min(1).optional().describe("Persistent volume name or ID in the same project"),
       snapshotId: snapshotId.optional(),
+      environment: z.string().min(1).max(100).optional().describe("Name of one of the project's sandbox environments: the sandbox starts with its variables instead of the project's default ones"),
       confirm: z.literal(true),
     }, annotations: { title: "Create sandbox", ...write, openWorldHint: false },
-  }, handle(async ({ project, lifetimeMs, template, size, region, volume, snapshotId: fromSnapshot }, extra) => {
+  }, handle(async ({ project, lifetimeMs, template, size, region, volume, snapshotId: fromSnapshot, environment }, extra) => {
     if (fromSnapshot && size) throw new Error("size can't be combined with snapshotId: a snapshot starts at the size it was taken at.");
+    if (fromSnapshot && environment) throw new Error("environment can't be combined with snapshotId.");
     extra.signal.throwIfAborted();
     const resolved = await resolveProject(ctx.api, project);
     extra.signal.throwIfAborted();
@@ -154,6 +158,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
       : {
           template: template ?? "interpreter", projectId: resolved.id, size: size ?? "small", timeoutMs: lifetimeMs,
           ...(sendRegion ? { region: sendRegion } : {}), ...(volume ? volumeRef(volume) : {}), metadata: { integration: "lizard-mcp" },
+          ...(environment ? { environment } : {}),
         };
     let sandbox: SandboxRecord;
     try {
@@ -369,7 +374,7 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_schedule", {
     title: "Schedule sandbox runs",
-    description: "Run a prompt (the coding agent) or a shell command in a sandbox on a schedule: each run wakes the sandbox if it is paused, runs, and puts it back to sleep, so the user pays only while it is awake. A sandbox already running is left running. Files in /workspace carry over between runs. A run still going when the next is due makes that one skip; five failures in a row switch the schedule off. The sandbox must not expire: a sandbox with a lifetime is deleted when it runs out, schedules with it. Get the user's approval first: every run uses billed compute (and model usage for prompts).",
+    description: "Run a prompt (the coding agent) or a shell command in a sandbox on a schedule: each run wakes the sandbox if it is paused, runs, and puts it back to sleep, so the user pays only while it is awake. A sandbox already running is left running. Files in /workspace carry over between runs. A run still going when the next is due makes that one skip; five failures in a row switch the schedule off. The sandbox must not expire: a sandbox with a lifetime is deleted when it runs out, schedules with it. Get the user's approval first: every run uses billed compute (and model usage for prompts). Only in the sandbox's first 15 minutes: an older sandbox answers SCHEDULE_ONLY_AT_CREATE (create a new sandbox and schedule it right away; its existing schedules can still be changed, run and deleted). A prompt needs a sandbox made from an agent template (claude, codex, opencode, pi, prime), otherwise AGENT_NOT_IN_SANDBOX; a command works on any template.",
     inputSchema: { sandboxId: id, ...scheduleFields, confirm: z.literal(true) },
     annotations: { title: "Schedule sandbox runs", ...write },
   }, handle(async ({ sandboxId, confirm: _c, ...body }) => {

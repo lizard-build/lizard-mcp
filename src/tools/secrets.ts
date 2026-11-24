@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
 import { withScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
-import { handle } from "../lib/tool-helpers.js";
+import { handle, REVEAL_ANNOTATIONS, revealMoved } from "../lib/tool-helpers.js";
 import { redactServiceDetails } from "../lib/service-redaction.js";
 
 interface Secret {
@@ -12,28 +12,48 @@ interface Secret {
 }
 
 export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
+  async function readSecrets(project: string, service?: string): Promise<Secret[]> {
+    const proj = await resolveProject(ctx.api, project);
+    const scope = { workspaceId: proj.workspaceId };
+    const path = service
+      ? `/api/apps/${(await resolveService(ctx.api, proj.id, service, scope)).id}/secrets`
+      : `/api/projects/${proj.id}/secrets`;
+    return ctx.api.get<Secret[]>(withScope(path, scope));
+  }
+
   server.registerTool(
     "secrets_list",
     {
       title: "List secrets",
       description:
-        "Use this when the user wants to see environment variables/secrets configured for a Lizard service or project. Values are masked by default; pass reveal:true to see actual values.",
+        "Use this when the user wants to see which environment variables/secrets are configured for a Lizard service or project. Values are always masked; use secrets_reveal only when the user asks to see them.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1).optional().describe("Omit for project-wide (global) secrets"),
-        reveal: z.boolean().optional().default(false),
+        reveal: z.boolean().optional().describe("No longer supported: use secrets_reveal"),
       },
       annotations: { title: "List secrets", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, reveal }) => {
-      const proj = await resolveProject(ctx.api, project);
-      const scope = { workspaceId: proj.workspaceId };
-      const path = service
-        ? `/api/apps/${(await resolveService(ctx.api, proj.id, service, scope)).id}/secrets`
-        : `/api/projects/${proj.id}/secrets`;
-      const secrets = await ctx.api.get<Secret[]>(withScope(path, scope));
-      return reveal ? secrets : secrets.map((s) => ({ key: s.key, value: "***" }));
+      if (reveal) throw revealMoved("secrets_reveal");
+      return (await readSecrets(project, service)).map((s) => ({ key: s.key, value: "***" }));
     }),
+  );
+
+  server.registerTool(
+    "secrets_reveal",
+    {
+      title: "Reveal secret values",
+      description:
+        "Show the plaintext values of the environment variables/secrets of a Lizard service or project. Only when the user explicitly asks to see them: ask first, then pass confirm:true. Use secrets_list to see just the keys.",
+      inputSchema: {
+        project: z.string().min(1),
+        service: z.string().min(1).optional().describe("Omit for project-wide (global) secrets"),
+        confirm: z.literal(true).describe("The user asked to see these values in this conversation"),
+      },
+      annotations: { title: "Reveal secret values", ...REVEAL_ANNOTATIONS },
+    },
+    handle(async ({ project, service }) => readSecrets(project, service)),
   );
 
   server.registerTool(
@@ -41,7 +61,7 @@ export function registerSecretsTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Set secrets",
       description:
-        "Use this when the user wants to set one or more environment variables/secrets on a Lizard service or project. Overwrites existing values with the same key. Credentials in the response are masked; use secrets_list with reveal:true only when the user asks for them.",
+        "Use this when the user wants to set one or more environment variables/secrets on a Lizard service or project. Overwrites existing values with the same key. Credentials in the response are masked; use secrets_reveal only when the user asks for them.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1).optional().describe("Omit to set project-wide (global) secrets"),

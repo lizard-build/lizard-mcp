@@ -34,7 +34,7 @@ export type ToolProfile = "full" | "sandboxes";
 const SANDBOX_TOOLS = new Set([
   "whoami", "workspace_list", "project_list", "region_list",
   "workspace_limits_get", "billing_status", "billing_summary",
-  "sandbox_list", "sandbox_show", "sandbox_create", "sandbox_exec",
+  "sandbox_list", "sandbox_show", "sandbox_reveal", "sandbox_create", "sandbox_exec",
   "sandbox_read_file", "sandbox_write_file", "sandbox_list_files", "sandbox_delete",
   "sandbox_set_timeout", "sandbox_pause", "sandbox_resume", "sandbox_snapshot",
   "sandbox_snapshot_list", "sandbox_snapshot_delete", "sandbox_fork",
@@ -69,7 +69,8 @@ starts it again. sandbox_snapshot saves files to create another sandbox in the s
 project and region; sandbox_fork starts copies. Delete resources the user approved
 for cleanup when done, including snapshots that still incur storage charges.
 sandbox_expose_port returns an HTTPS URL with an access token. Treat that URL as a
-credential. Other responses mask access credentials unless reveal:true is requested.
+credential. Other responses mask access credentials; sandbox_reveal shows them, only when
+the user asks, with confirm:true.
 
 Account and project changes, CI, domains, schedules, support and volume management
 are outside this connector. Create a workspace and project in the Lizard dashboard
@@ -238,8 +239,13 @@ There is no separate platform-side confirmation step — a tool call is the acti
 Destructive tools (project_delete, workspace_delete, service_delete, secrets_delete,
 domain_delete, volume_delete, sandbox_delete, sandbox_snapshot_delete, repo_delete) require confirm:true
 in the call itself since there's no interactive prompt in MCP; still get the user's
-explicit go-ahead in conversation before setting it. All write tools declare
-destructiveHint:true so clients can ask before changing resources. Shell access to
+explicit go-ahead in conversation before setting it. The same goes for tools that run or
+publish code or change a project in bulk: functions_deploy, functions_invoke, repo_commit,
+pr_merge, config_apply, sandbox_schedule_run, sandbox_schedule_delete, and
+sandbox_schedule_update when it changes command, prompt or agent. All write tools declare
+destructiveHint:true so clients can ask before changing resources. Read tools mask
+credentials; service_reveal, secrets_reveal and sandbox_reveal show them, need confirm:true,
+and are for when the user explicitly asks to see the values. Shell access to
 services is unavailable; use sandbox_exec to run commands in a sandbox.
 
 ## Composition

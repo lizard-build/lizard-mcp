@@ -5,7 +5,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
 import { APIError, apiErrorFrom, NO_TOKEN_MESSAGE, platformUrl, withQuery } from "../lib/api.js";
 import { resolveProject } from "../lib/resolve.js";
-import { handle } from "../lib/tool-helpers.js";
+import { handle, REVEAL_ANNOTATIONS, revealMoved } from "../lib/tool-helpers.js";
 
 const MAX_TEXT_BYTES = 65536;
 const MIN_LIFETIME_MS = 60_000;
@@ -110,21 +110,30 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_show", {
     title: "Show sandbox",
-    description: "Read a sandbox's status, project, template, size and expiry. Access tokens and SSH passwords are masked by default; set reveal:true only when the user explicitly asks for them. The platform checks the current user's access to this ID.",
+    description: "Read a sandbox's status, project, template, size and expiry. Access tokens and SSH passwords are always masked; use sandbox_reveal only when the user explicitly asks for them. The platform checks the current user's access to this ID.",
     inputSchema: {
       sandboxId: id,
-      reveal: z.boolean().optional().default(false).describe("Include access credentials only on explicit request"),
+      reveal: z.boolean().optional().describe("No longer supported: use sandbox_reveal"),
     }, annotations: { title: "Show sandbox", ...readOnly },
   }, handle(async ({ sandboxId, reveal }) => {
-    const data = await ctx.api.get(route(sandboxId));
-    return reveal ? data : redactServiceDetails(data);
+    if (reveal) throw revealMoved("sandbox_reveal");
+    return redactServiceDetails(await ctx.api.get(route(sandboxId)));
   }));
+
+  server.registerTool("sandbox_reveal", {
+    title: "Reveal sandbox credentials",
+    description: "Show a sandbox with its plaintext access token and SSH password. Only when the user explicitly asks for them: ask first, then pass confirm:true. Use sandbox_show for everything else.",
+    inputSchema: {
+      sandboxId: id,
+      confirm: z.literal(true).describe("The user asked to see these credentials in this conversation"),
+    }, annotations: { title: "Reveal sandbox credentials", ...REVEAL_ANNOTATIONS },
+  }, handle(async ({ sandboxId }) => ctx.api.get(route(sandboxId))));
 
   server.registerTool("sandbox_create", {
     title: "Create sandbox",
     description:
       "Create a sandbox (a Firecracker microVM) in an explicit project. Uses billed cloud resources and returns its ID. " +
-      "Access credentials are masked; use sandbox_show with reveal:true only when the user asks for them. " +
+      "Access credentials are masked; use sandbox_reveal only when the user asks for them. " +
       "Defaults: template interpreter, size small (2 vCPU / 4 GB), a 5-minute lifetime; expiry deletes its files unless a volume is attached. " +
       "Other templates: base, codex, claude, opencode, pi, prime, desktop (the server checks the name). " +
       "Sizes: nano (0.5 vCPU / 1 GB; only the base, claude and codex templates), mini (1 vCPU / 2 GB; only base, claude, codex and interpreter), small, medium (4 vCPU / 8 GB), large (8 vCPU / 16 GB), big (16 vCPU / 32 GB; paid plans only; base, claude, codex, interpreter and desktop). Nano, mini and big take no volume. " +
@@ -392,15 +401,23 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_schedule_update", {
     title: "Change sandbox schedule",
-    description: "Change a schedule: its timing, what it runs, its timeout, or switch it off (enabled:false) and on again.",
-    inputSchema: { scheduleId, ...scheduleFields, enabled: z.boolean().optional() },
+    description: "Change a schedule: its timing, what it runs, its timeout, or switch it off (enabled:false) and on again. Changing what it runs (command, prompt or agent) needs the user's approval and confirm:true.",
+    inputSchema: {
+      scheduleId, ...scheduleFields, enabled: z.boolean().optional(),
+      confirm: z.literal(true).optional().describe("Required when command, prompt or agent changes: the user approved what the schedule will run"),
+    },
     annotations: { title: "Change sandbox schedule", ...change, idempotentHint: true },
-  }, handle(async ({ scheduleId: sid, ...body }) => ctx.api.patch(scheduleRoute(sid), body)));
+  }, handle(async ({ scheduleId: sid, confirm, ...body }) => {
+    if ((body.command !== undefined || body.prompt !== undefined || body.agent !== undefined) && confirm !== true) {
+      throw new Error("Changing command, prompt or agent changes what runs in the sandbox: get the user's approval, then call again with confirm:true.");
+    }
+    return ctx.api.patch(scheduleRoute(sid), body);
+  }));
 
   server.registerTool("sandbox_schedule_run", {
     title: "Run sandbox schedule now",
-    description: "Start a run of the schedule now (within a few seconds; also switches it back on). Check the result with sandbox_schedule_runs.",
-    inputSchema: { scheduleId },
+    description: "Start a run of the schedule now (within a few seconds; also switches it back on). It uses billed compute: get the user's approval, then pass confirm:true. Check the result with sandbox_schedule_runs.",
+    inputSchema: { scheduleId, confirm: z.literal(true) },
     annotations: { title: "Run sandbox schedule now", ...write, openWorldHint: false },
   }, handle(async ({ scheduleId: sid }) => ctx.api.post(`${scheduleRoute(sid)}/run`, {})));
 
@@ -413,8 +430,8 @@ export function registerSandboxTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("sandbox_schedule_delete", {
     title: "Delete sandbox schedule",
-    description: "Delete a schedule. The sandbox itself stays as it is.",
-    inputSchema: { scheduleId },
+    description: "Delete a schedule. The sandbox itself stays as it is. Requires confirm:true after the user approves.",
+    inputSchema: { scheduleId, confirm: z.literal(true) },
     annotations: { title: "Delete sandbox schedule", ...change, idempotentHint: true },
   }, handle(async ({ scheduleId: sid }) => ctx.api.delete(scheduleRoute(sid))));
 }

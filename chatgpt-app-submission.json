@@ -224,6 +224,18 @@
         "destructive_justification": "Pure read."
       }
     },
+    "service_reveal": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes nothing, but returns the service's environment values and connection credentials in plaintext, so it is not marked read-only and the client asks first; requires confirm:true.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read: no resources change."
+      }
+    },
     "service_create": {
       "annotations": {
         "readOnlyHint": false,
@@ -459,9 +471,21 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Lists secret keys (values masked unless reveal:true), no writes.",
+        "read_only_justification": "Lists secret keys with values masked, no writes.",
         "open_world_justification": "Lizard's own API only.",
         "destructive_justification": "Pure read."
+      }
+    },
+    "secrets_reveal": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes nothing, but returns secret values in plaintext, so it is not marked read-only and the client asks first; requires confirm:true.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read: no resources change."
       }
     },
     "secrets_set": {
@@ -726,6 +750,18 @@
         "read_only_justification": "Reads sandbox status and expiry.",
         "open_world_justification": "Calls the Lizard API only.",
         "destructive_justification": "No resources change."
+      }
+    },
+    "sandbox_reveal": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Changes nothing, but returns the sandbox's access token and SSH password in plaintext, so it is not marked read-only and the client asks first; requires confirm:true.",
+        "open_world_justification": "Lizard's own API only.",
+        "destructive_justification": "Pure read: no resources change."
       }
     },
     "sandbox_create": {

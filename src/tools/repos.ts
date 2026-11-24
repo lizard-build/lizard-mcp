@@ -102,7 +102,7 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
     description:
       "Commit changes to a branch of a Lizard Git repository, made on the server (no clone needed): each file is new text content, delete: true, or a rename with moveFrom. " +
       "createFrom makes the branch from that ref when it doesn't exist yet. With expect (the commit you based the change on), a branch that moved meanwhile is merged by the server and only a real conflict fails (409, with the paths). " +
-      "Pass an idempotencyKey to make a retry safe. A commit to a branch a service deploys from starts a deploy, and to a branch with .lizard/workflows starts CI. Uses the Lizard Git API; docs: https://lizard.build/docs/.",
+      "Pass an idempotencyKey to make a retry safe. A commit to a branch a service deploys from starts a deploy, and to a branch with .lizard/workflows starts CI. Requires confirm:true after the user approves. Uses the Lizard Git API; docs: https://lizard.build/docs/.",
     inputSchema: {
       repo,
       branch: z.string().min(1),
@@ -116,9 +116,10 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
       expect: z.string().min(1).optional(),
       createFrom: z.string().min(1).optional(),
       idempotencyKey: z.string().min(1).max(200).optional(),
+      confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
     },
     annotations: { title: "Commit files to Lizard Git", ...change },
-  }, handle(async ({ repo: r, idempotencyKey, ...body }) => {
+  }, handle(async ({ repo: r, idempotencyKey, confirm: _c, ...body }) => {
     for (const f of body.files) {
       if (!f.delete && f.content === undefined && !f.moveFrom) throw new Error(`${f.path}: pass content, delete: true or moveFrom.`);
     }
@@ -157,12 +158,13 @@ export function registerRepoTools(server: McpServer, ctx: ToolContext) {
 
   server.registerTool("pr_merge", {
     title: "Merge pull request",
-    description: "Merge a Lizard Git pull request: method merge (default), squash or rebase; deleteBranch removes the head branch afterwards. The base branch moves, which can start a deploy or CI. Get the user's go-ahead first.",
+    description: "Merge a Lizard Git pull request: method merge (default), squash or rebase; deleteBranch removes the head branch afterwards. The base branch moves, which can start a deploy or CI. Get the user's go-ahead first, then pass confirm:true.",
     inputSchema: {
       repo, number,
       method: z.enum(["merge", "squash", "rebase"]).optional(),
       message: z.string().min(1).optional(),
       deleteBranch: z.boolean().optional(),
+      confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
     },
     annotations: { title: "Merge pull request", ...change },
   }, handle(async ({ repo: r, number: n, method, message, deleteBranch }) =>

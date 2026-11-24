@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../server.js";
 import { withScope, type ResourceScope } from "../lib/api.js";
 import { resolveProject, resolveService } from "../lib/resolve.js";
-import { handle } from "../lib/tool-helpers.js";
+import { handle, REVEAL_ANNOTATIONS, revealMoved } from "../lib/tool-helpers.js";
 import { redactServiceDetails } from "../lib/service-redaction.js";
 import { DEFAULT_REGION } from "../lib/regions.js";
 
@@ -91,7 +91,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     "service_list",
     {
       title: "List services",
-      description: "List apps and addons in a Lizard project. Environment values, connection credentials and build-log snippets are masked. Use service_show with reveal:true only when the user asks for those details.",
+      description: "List apps and addons in a Lizard project. Environment values, connection credentials and build-log snippets are masked. Use service_reveal only when the user asks for those details.",
       inputSchema: { project: z.string().min(1).describe("Project name, slug, or ID") },
       annotations: { title: "List services", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
@@ -101,28 +101,48 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     }),
   );
 
+  async function readService(project: string, service: string) {
+    const proj = await resolveProject(ctx.api, project);
+    const scope = { workspaceId: proj.workspaceId };
+    const svc = await resolveService(ctx.api, proj.id, service, scope);
+    return svc.kind === "app"
+      ? await ctx.api.get(`/api/apps/${svc.id}`)
+      : (await ctx.api.get<ServicesResponse>(withScope(`/api/projects/${proj.id}/services`, scope))).addons?.find((a) => a.id === svc.id) ?? null;
+  }
+
   server.registerTool(
     "service_show",
     {
       title: "Show service details",
       description:
-        "Read a Lizard service's status, config and resource limits. Environment values, connection credentials and build-log snippets are masked by default. Set reveal:true only when the user explicitly asks to see those details.",
+        "Read a Lizard service's status, config and resource limits. Environment values, connection credentials and build-log snippets are always masked; use service_reveal only when the user explicitly asks to see those details.",
       inputSchema: {
         project: z.string().min(1),
         service: z.string().min(1),
-        reveal: z.boolean().optional().default(false).describe("Include credentials and build-log snippets only on explicit request"),
+        reveal: z.boolean().optional().describe("No longer supported: use service_reveal"),
       },
       annotations: { title: "Show service details", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     handle(async ({ project, service, reveal }) => {
-      const proj = await resolveProject(ctx.api, project);
-      const scope = { workspaceId: proj.workspaceId };
-      const svc = await resolveService(ctx.api, proj.id, service, scope);
-      const data = svc.kind === "app"
-        ? await ctx.api.get(`/api/apps/${svc.id}`)
-        : (await ctx.api.get<ServicesResponse>(withScope(`/api/projects/${proj.id}/services`, scope))).addons?.find((a) => a.id === svc.id) ?? null;
-      return reveal ? data : redactServiceDetails(data);
+      if (reveal) throw revealMoved("service_reveal");
+      return redactServiceDetails(await readService(project, service));
     }),
+  );
+
+  server.registerTool(
+    "service_reveal",
+    {
+      title: "Reveal service credentials",
+      description:
+        "Show a Lizard service with its plaintext environment values, connection credentials and build-log snippets. Only when the user explicitly asks to see them: ask first, then pass confirm:true. Use service_show for everything else.",
+      inputSchema: {
+        project: z.string().min(1),
+        service: z.string().min(1),
+        confirm: z.literal(true).describe("The user asked to see these credentials in this conversation"),
+      },
+      annotations: { title: "Reveal service credentials", ...REVEAL_ANNOTATIONS },
+    },
+    handle(async ({ project, service }) => readService(project, service)),
   );
 
   server.registerTool(
@@ -156,7 +176,7 @@ export function registerServiceTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Create addon",
       description:
-        "Use this when the user wants to provision a managed database or storage addon (Postgres, Redis, or S3) in a Lizard project. Calling this again creates another addon, even with the same name — it does not update an existing one. Connection credentials are masked; use service_show with reveal:true only when the user asks for them.",
+        "Use this when the user wants to provision a managed database or storage addon (Postgres, Redis, or S3) in a Lizard project. Calling this again creates another addon, even with the same name — it does not update an existing one. Connection credentials are masked; use service_reveal only when the user asks for them.",
       inputSchema: {
         project: z.string().min(1),
         type: z.enum(["postgres", "redis", "s3"]),

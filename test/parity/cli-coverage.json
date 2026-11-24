@@ -7,7 +7,8 @@
     "template_deploy": "Templates are in the dashboard and the API, not the Lizard CLI.",
     "sandbox_write_file": "The Lizard CLI writes local files with sandbox files put; a remote server takes the text in the call.",
     "sandbox_show": "The Lizard CLI shows a sandbox inside sandbox list.",
-    "secrets_refs": "The Lizard CLI prints references inside secrets list."
+    "secrets_refs": "The Lizard CLI prints references inside secrets list.",
+    "sandbox_reveal": "The Lizard CLI shows a sandbox's credentials inside sandbox list."
   },
   "commands": {
     "add": {
@@ -1080,12 +1081,14 @@
     },
     "secrets": {
       "mcp": [
-        "secrets_list"
+        "secrets_list",
+        "secrets_reveal"
       ]
     },
     "secrets list": {
       "mcp": [
-        "secrets_list"
+        "secrets_list",
+        "secrets_reveal"
       ]
     },
     "secrets set": {
@@ -1114,7 +1117,8 @@
     },
     "service show": {
       "mcp": [
-        "service_show"
+        "service_show",
+        "service_reveal"
       ]
     },
     "service link": {

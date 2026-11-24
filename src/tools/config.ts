@@ -12,12 +12,13 @@ export function registerConfigTools(server: McpServer, ctx: ToolContext) {
     {
       title: "Apply bulk config",
       description:
-        "Apply a configuration to a Lizard project in one request (services, addons and secrets). The config body is passed through verbatim and can overwrite or remove existing fields. Credentials in the response are masked; use service_show or secrets_list with reveal:true only when the user asks for them. Uses the Lizard API config:apply endpoint; docs: https://lizard.build/docs/.",
+        "Apply a configuration to a Lizard project in one request (services, addons and secrets). The config body is passed through verbatim and can overwrite or remove existing fields. Credentials in the response are masked; use service_reveal or secrets_reveal only when the user asks for them. Requires confirm:true after the user approves. Uses the Lizard API config:apply endpoint; docs: https://lizard.build/docs/.",
       inputSchema: {
         project: z.string().min(1),
         config: z
           .record(z.string(), z.unknown())
           .describe("Arbitrary config:apply request body — passed through verbatim, validated server-side"),
+        confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
       // Passed through verbatim to a bulk endpoint capable of overwriting or
       // removing fields not listed, so treated as destructive/non-idempotent

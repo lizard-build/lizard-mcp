@@ -19,7 +19,7 @@ export function registerLogsTools(server: McpServer, ctx: ToolContext) {
         limit: z.number().int().min(1).max(1000).optional().default(100),
         level: z.enum(["error", "warn", "info", "debug"]).optional().describe("Filter runtime logs by level"),
         build: z.boolean().optional().describe("Fetch build logs instead of runtime logs"),
-        buildId: z.string().optional().describe("Specific build ID; defaults to the most recent build"),
+        buildId: z.string().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/).optional().describe("Specific build ID; defaults to the most recent build"),
       },
       annotations: { title: "Tail logs", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
@@ -36,7 +36,7 @@ export function registerLogsTools(server: McpServer, ctx: ToolContext) {
           if (!app.builds?.length) throw new Error("No builds for this app yet.");
           targetBuildId = app.builds[0].id;
         }
-        const events = await collectSSE(`/api/builds/${targetBuildId}/logs`, ctx.accessToken, {
+        const events = await collectSSE(`/api/builds/${encodeURIComponent(targetBuildId)}/logs`, ctx.accessToken, {
           idleTimeoutMs: 3000,
           stopOn: (event) => event === "done" || event === "error",
         });

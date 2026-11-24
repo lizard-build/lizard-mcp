@@ -17,6 +17,12 @@ const RUNTIMES: Record<string, string> = { python: "python3.13", node: "nodejs22
 
 interface Account { accountId: string; region: string }
 
+/** A path inside the function's zip: relative, forward slashes, no `..` (an archive entry must not escape the function root). */
+export const functionFilePath = z.string().min(1).max(1024).refine(
+  (p) => !p.includes("\0") && !p.includes("\\") && !/^[A-Za-z]:/.test(p) && !p.replace(/^\/+/, "").split("/").includes(".."),
+  "Use a relative path with forward slashes and no '..' components (no backslashes, drive letters or NUL bytes)",
+);
+
 const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
 const crc32 = (b: Buffer) => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
 function zip(files: { path: string; content: string }[]): Buffer {
@@ -105,11 +111,11 @@ export function registerFunctionsTools(server: McpServer, ctx: ToolContext) {
         "Pass the files as text (e.g. handler.py with `def handler(event, context)`, index.ts with `export const handler = async (event) => ...`, main.go, src/main.rs + Cargo.toml). " +
         "Packages are installed for you: a requirements.txt / package.json in the files, else `packages`, else what the imports need (bs4 -> beautifulsoup4). " +
         "Returns status 'ready' once the new code has started (a failed update leaves the previous version serving and returns `code`, `remediation` and `logTail`: apply the remediation and call again). " +
-        "Idempotent by name: unchanged files are a no-op. HTTP-style handlers get a public URL by default.",
+        "Idempotent by name: unchanged files are a no-op. HTTP-style handlers get a public URL by default. Requires confirm:true after the user approves.",
       inputSchema: {
         project: z.string().min(1).describe("project name or id"),
         name: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).describe("function name"),
-        files: z.array(z.object({ path: z.string().min(1), content: z.string() })).min(1).max(200).describe("source files (text), paths relative to the function root"),
+        files: z.array(z.object({ path: functionFilePath, content: z.string() })).min(1).max(200).describe("source files (text), paths relative to the function root"),
         language: z.enum(["python", "node", "typescript", "ruby", "go", "rust"]).optional(),
         handler: z.string().optional().describe("module.function (default: found in the source)"),
         packages: z.array(z.string()).optional().describe("libraries to preinstall, e.g. ['requests', 'numpy==2.1.3']; [] removes them; omit to infer from imports"),
@@ -120,6 +126,7 @@ export function registerFunctionsTools(server: McpServer, ctx: ToolContext) {
         timeout_seconds: z.number().int().min(1).max(86400).optional(),
         region: z.enum(["us", "eu", "us-east-1", "eu-west-lim-a"]).optional(),
         test_event: z.unknown().optional().describe("if set, the function is invoked with this event after deploying and the result returned"),
+        confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
       annotations: { title: "Deploy a function", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
@@ -167,10 +174,11 @@ export function registerFunctionsTools(server: McpServer, ctx: ToolContext) {
     "functions_invoke",
     {
       title: "Call a function",
-      description: "Use this to call a Lizard Function with an event and get its result and log. `as_schedule` sends the event its schedule sends.",
+      description: "Use this to call a Lizard Function with an event and get its result and log. `as_schedule` sends the event its schedule sends. The function runs real code that can change data: requires confirm:true after the user approves.",
       inputSchema: {
         project: z.string().min(1), name: z.string().min(1), event: z.unknown().optional(),
         as_schedule: z.boolean().optional(), region: z.enum(["us", "eu", "us-east-1", "eu-west-lim-a"]).optional(),
+        confirm: z.literal(true).describe("Must be true to proceed; there is no interactive confirmation in MCP"),
       },
       annotations: { title: "Call a function", readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },

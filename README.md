@@ -150,25 +150,25 @@ It can attach an existing volume by ID, but cannot list or create volumes.
 |---|---|
 | Account | `whoami`, `workspace_list`, `workspace_create`, `workspace_delete`, `project_list`, `project_create`, `project_delete`, `project_pause`, `project_resume`, `workspace_pause`, `workspace_resume`, `region_list`, `billing_status`, `billing_summary` |
 | Workspace limits | `workspace_limits_get`, `workspace_limits_set`, `workspace_resale_pricing_get`, `workspace_resale_pricing_set` |
-| Services | `service_list`, `service_show`, `service_create`, `service_set`, `service_rename`, `service_delete`, `service_pause`, `service_resume`, `service_sleep_status`, `service_sleep_set`, `service_scale`, `service_get_port`, `service_set_port`, `addon_create` |
+| Services | `service_list`, `service_show`, `service_reveal`, `service_create`, `service_set`, `service_rename`, `service_delete`, `service_pause`, `service_resume`, `service_sleep_status`, `service_sleep_set`, `service_scale`, `service_get_port`, `service_set_port`, `addon_create` |
 | Deploys | `deploy_redeploy`, `deploy_restart`, `deploy_events` |
 | Functions | `functions_deploy`, `functions_invoke`, `functions_logs`, `functions_list` |
 | Templates | `template_list`, `template_show`, `template_deploy` |
 | Logs and metrics | `logs_tail`, `metrics_get` |
-| Secrets | `secrets_list`, `secrets_set`, `secrets_delete`, `secrets_refs` |
+| Secrets | `secrets_list`, `secrets_reveal`, `secrets_set`, `secrets_delete`, `secrets_refs` |
 | Domains | `domain_attach`, `domain_verify`, `domain_delete`, `domain_owned_list`, `domain_dns_list`, `domain_dns_update` |
 | Volumes | `volume_list`, `volume_create`, `volume_resize`, `volume_delete` |
 | GitHub connection | `git_connect`, `git_checkout`, `git_status` |
 | Lizard Git | `repo_list`, `repo_create`, `repo_show`, `repo_delete`, `repo_files`, `repo_read_file`, `repo_commit`, `repo_commits`, `pr_list`, `pr_create`, `pr_show`, `pr_merge`, `ci_run_list`, `ci_run_show` |
-| Sandboxes | `sandbox_list`, `sandbox_show`, `sandbox_create`, `sandbox_exec`, `sandbox_read_file`, `sandbox_write_file`, `sandbox_list_files`, `sandbox_delete`, `sandbox_set_timeout`, `sandbox_pause`, `sandbox_resume`, `sandbox_snapshot`, `sandbox_snapshot_list`, `sandbox_snapshot_delete`, `sandbox_fork`, `sandbox_expose_port`, `sandbox_unexpose_port`, `sandbox_schedule`, `sandbox_schedule_list`, `sandbox_schedule_update`, `sandbox_schedule_run`, `sandbox_schedule_runs`, `sandbox_schedule_delete` |
+| Sandboxes | `sandbox_list`, `sandbox_show`, `sandbox_reveal`, `sandbox_create`, `sandbox_exec`, `sandbox_read_file`, `sandbox_write_file`, `sandbox_list_files`, `sandbox_delete`, `sandbox_set_timeout`, `sandbox_pause`, `sandbox_resume`, `sandbox_snapshot`, `sandbox_snapshot_list`, `sandbox_snapshot_delete`, `sandbox_fork`, `sandbox_expose_port`, `sandbox_unexpose_port`, `sandbox_schedule`, `sandbox_schedule_list`, `sandbox_schedule_update`, `sandbox_schedule_run`, `sandbox_schedule_runs`, `sandbox_schedule_delete` |
 | Config as code | `config_apply` |
 | Support | `support`, `support_list`, `support_show`, `support_reply` |
 
 Tool names use `snake_case` (not the MCP spec's permitted dots) to match OpenAI's function-name pattern `^[a-zA-Z0-9_-]{1,64}$`, which some ChatGPT/Codex surfaces enforce directly.
 
-Every tool includes a title in both `title` and `annotations.title`. Read tools set `readOnlyHint: true`; all write tools set `destructiveHint: true` so clients can ask before changing resources. Shell access to app services is unavailable, so the server exposes no service-shell tool. Use `sandbox_exec` to run commands in Lizard Sandboxes.
+Every tool includes a title in both `title` and `annotations.title`. Read tools set `readOnlyHint: true`; all write tools set `destructiveHint: true` so clients can ask before changing resources. `service_reveal`, `secrets_reveal` and `sandbox_reveal`, the only tools that return plaintext credentials, change nothing but are not read-only (`readOnlyHint: false`, `destructiveHint: false`), so a client asks before running them, and they need `confirm: true`. Shell access to app services is unavailable, so the server exposes no service-shell tool. Use `sandbox_exec` to run commands in Lizard Sandboxes.
 
-Destructive tools — `project_delete`, `workspace_delete`, `service_delete`, `secrets_delete`, `domain_delete`, `volume_delete`, `sandbox_delete`, `sandbox_snapshot_delete`, `repo_delete`, and `domain_dns_update` with `remove` — require an explicit confirmation argument, so a client cannot delete anything or run arbitrary commands by accident.
+Destructive tools — `project_delete`, `workspace_delete`, `service_delete`, `secrets_delete`, `domain_delete`, `volume_delete`, `sandbox_delete`, `sandbox_snapshot_delete`, `repo_delete`, and `domain_dns_update` with `remove` — require an explicit confirmation argument, so a client cannot delete anything or run arbitrary commands by accident. So do the tools that run or publish code or change a project in bulk: `functions_deploy`, `functions_invoke`, `repo_commit`, `pr_merge`, `config_apply`, `sandbox_schedule_run`, `sandbox_schedule_delete`, and `sandbox_schedule_update` when it changes `command`, `prompt` or `agent`.
 
 `project_delete` puts the project's services and databases in trash for 3 days, but deletes its sandboxes, their volumes and snapshots at once.
 
@@ -209,7 +209,7 @@ Commands run as root within the sandbox, default to a 60-second timeout, and acc
 
 Text reads and writes accept up to 64 KiB of UTF-8. Each output stream is capped at 64 KiB and includes a truncation flag. All paths refer to the sandbox. `sandbox_show` and `sandbox_list` help check an uncertain result before retrying. `sandbox_delete` treats a sandbox that is already gone as a successful no-op.
 
-Service and sandbox metadata responses mask connection credentials, environment values and build-log snippets, including create, update, pause and resume responses. Credential query parameters in URLs are masked too. Values inside environment and connection maps become strings (`***`), including numeric and boolean values; explicit reveal returns the original values and types. For credentials, call `service_show` or `sandbox_show` with `reveal: true` only when the user asks for them. `secrets_list` also masks values unless `reveal: true` is set. Port tools return access credentials when the user asks to expose a sandbox port.
+Service and sandbox metadata responses mask connection credentials, environment values and build-log snippets, including create, update, pause and resume responses. Credential query parameters in URLs are masked too. Values inside environment and connection maps become strings (`***`), including numeric and boolean values; the reveal tools return the original values and types. For credentials, call `service_reveal` or `sandbox_reveal` (with `confirm: true`) only when the user asks for them; `secrets_list` always masks values and `secrets_reveal` shows them. The read tools refuse the old `reveal: true` argument with an error naming the reveal tool. Port tools return access credentials when the user asks to expose a sandbox port.
 
 The HTTP server handles each call with its caller's Bearer token, including OAuth tokens and API keys. It keeps no shared sandbox handles or global SDK credentials. A disconnected client must reconnect to delete its sandbox; its finite lifetime remains the cleanup backstop.
 

@@ -61,3 +61,14 @@ export function handle<Args extends unknown[]>(
     }
   };
 }
+
+/**
+ * Plaintext credentials come only from the *_reveal tools, which are not read-only (so a
+ * client asks before running them) and need confirm:true. The read-only tools still accept
+ * the old `reveal` flag so an older caller gets this error instead of silently masked values.
+ */
+export const REVEAL_ANNOTATIONS = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
+
+export function revealMoved(tool: string): Error {
+  return new Error(`reveal is no longer accepted here. Values are shown only by ${tool}, with confirm:true: ask the user first whether they want to see them in this conversation.`);
+}

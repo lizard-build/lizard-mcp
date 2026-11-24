@@ -200,18 +200,18 @@ async function lizardGit() {
   await step("repo_show", { repo: S.repo }, "reads it", { check: (r) => (r.sc?.repo?.defaultBranch ? undefined : "no default branch") });
   await step("repo_files", { repo: S.repo }, "lists the root", { check: (r) => (JSON.stringify(r.sc).includes("README") ? undefined : "README missing") });
   await step("repo_read_file", { repo: S.repo, path: "README.md" }, "reads the README", { check: (r) => (typeof r.sc?.content === "string" ? undefined : "no content") });
-  const commit = await step("repo_commit", { repo: S.repo, branch: "main", message: "Add app and CI", files: APP_FILES, idempotencyKey: `${NAME}-1` }, "commits the app and a CI workflow", {
+  const commit = await step("repo_commit", { repo: S.repo, branch: "main", message: "Add app and CI", files: APP_FILES, idempotencyKey: `${NAME}-1`, confirm: true }, "commits the app and a CI workflow", {
     check: (r) => (r.sc?.sha ? undefined : "no sha"),
   });
   S.sha = commit.sc?.sha;
-  await step("repo_commit", { repo: S.repo, branch: "main", message: "Add app and CI", files: APP_FILES, idempotencyKey: `${NAME}-1` }, "the same idempotency key does not commit twice", {
+  await step("repo_commit", { repo: S.repo, branch: "main", message: "Add app and CI", files: APP_FILES, idempotencyKey: `${NAME}-1`, confirm: true }, "the same idempotency key does not commit twice", {
     check: (r) => (r.sc?.sha === S.sha ? undefined : `new sha ${r.sc?.sha} vs ${S.sha}`),
   });
   await step("repo_files", { repo: S.repo, recursive: true }, "lists every path", {
     check: (r) => (r.sc?.files?.includes("server.js") && r.sc?.files?.includes(".lizard/workflows/ci.yml") ? undefined : `files: ${JSON.stringify(r.sc?.files)}`),
   });
   await step("repo_commits", { repo: S.repo }, "lists commits", { check: (r) => ((r.sc?.commits?.length ?? 0) >= 2 ? undefined : "expected 2+ commits") });
-  await step("repo_commit", { repo: S.repo, branch: "feature", createFrom: "main", message: "Say hello", files: [{ path: "HELLO.md", content: "hello from the audit\n" }] }, "makes a branch with a commit", {
+  await step("repo_commit", { repo: S.repo, branch: "feature", createFrom: "main", message: "Say hello", files: [{ path: "HELLO.md", content: "hello from the audit\n" }], confirm: true }, "makes a branch with a commit", {
     check: (r) => (r.sc?.sha ? undefined : "no sha"),
   });
   const pr = await step("pr_create", { repo: S.repo, title: "Say hello", head: "feature", base: "main", body: "Opened by the Lizard MCP live audit." }, "opens a pull request", {
@@ -220,7 +220,7 @@ async function lizardGit() {
   S.pr = pr.sc?.number;
   await step("pr_list", { repo: S.repo }, "lists it", { check: (r) => (r.sc?.items?.some((i: any) => i.number === S.pr) ? undefined : "pull request missing") });
   await step("pr_show", { repo: S.repo, number: S.pr }, "reads it", { check: (r) => (r.sc?.issue?.number === S.pr ? undefined : "wrong pull request") });
-  await step("pr_merge", { repo: S.repo, number: S.pr, method: "squash", deleteBranch: true }, "squash-merges it", { check: (r) => (r.sc?.sha ? undefined : "no sha") });
+  await step("pr_merge", { repo: S.repo, number: S.pr, method: "squash", deleteBranch: true, confirm: true }, "squash-merges it", { check: (r) => (r.sc?.sha ? undefined : "no sha") });
   await step("repo_read_file", { repo: S.repo, path: "HELLO.md", ref: "main" }, "main has the merged file", { check: (r) => (r.sc?.content?.includes("hello") ? undefined : "file not on main") });
   const runs = await waitFor("ci_run_list", { repo: S.repo }, "CI ran for the pushes", (r) => (r.sc?.runs ?? []).some((x: any) => !["queued", "running", "waiting", "pending", "dispatched"].includes(x.status)), 300_000, 10_000);
   const run = (runs.sc?.runs ?? [])[0];
@@ -265,8 +265,8 @@ async function services() {
   await step("secrets_refs", { project: S.project, service: svc }, "lists references", { check: (r) => (r.text.includes("REDIS_URL") ? undefined : "no REDIS_URL ref") });
   await step("secrets_set", { project: S.project, service: svc, values: { AUDIT: "yes", REDIS_URL: "${{cache.REDIS_URL}}" } }, "sets a value and an addon reference", {});
   await step("secrets_list", { project: S.project, service: svc }, "masks values by default", { check: (r) => (r.text.includes("AUDIT") && !r.text.includes('"yes"') ? undefined : "not masked or missing") });
-  await step("secrets_list", { project: S.project, service: svc, reveal: true }, "reveals on request", { check: (r) => (r.text.includes('"yes"') ? undefined : "value missing") });
-  await step("config_apply", { project: S.project, config: { secrets: { shared: { AUDIT_SHARED: "1" } } } }, "applies config as code (a shared value)", {});
+  await step("secrets_reveal", { project: S.project, service: svc, confirm: true }, "reveals on request", { check: (r) => (r.text.includes('"yes"') ? undefined : "value missing") });
+  await step("config_apply", { project: S.project, config: { secrets: { shared: { AUDIT_SHARED: "1" } } }, confirm: true }, "applies config as code (a shared value)", {});
   await step("secrets_list", { project: S.project }, "sees the project-wide value", { check: (r) => (r.text.includes("AUDIT_SHARED") ? undefined : "missing") });
   await step("secrets_delete", { project: S.project, keys: ["AUDIT_SHARED"], confirm: true }, "deletes the project-wide value", {});
   await step("secrets_delete", { project: S.project, service: svc, keys: ["NOPE_NOT_SET"], confirm: true }, "refuses a key that does not exist", { error: /not found/ });

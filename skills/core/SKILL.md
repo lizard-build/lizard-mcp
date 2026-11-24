@@ -364,6 +364,7 @@ workspace_create / project_create                            new workspace / pro
 project_delete / workspace_delete                            trash a project (sandboxes go at once) / delete an empty workspace
 workspace_limits_get / _set, workspace_resale_pricing_*      caps on what a workspace runs; reseller prices
 service_list / service_show                                  services in a project / one service's detail
+service_reveal / secrets_reveal / sandbox_reveal             plaintext credentials, only when the user asks (confirm:true)
 service_create (repoUrl) / addon_create                      deploy a repo / provision postgres|redis|s3
 service_set / service_set_port / service_rename               build/deploy config, port, name
 service_scale                                                 replicas / cpu / memory (apps), storage (addons, grow-only)
